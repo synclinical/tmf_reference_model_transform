@@ -53,7 +53,7 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.bump.outputs.new_tag.value }}
+          tag_name: "${{ steps.bump.outputs.new_tag }}"
           draft: ${{ github.ref != 'refs/heads/main' }}
           files: |
             LICENSE
