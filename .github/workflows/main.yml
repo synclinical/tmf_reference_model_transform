@@ -50,12 +50,6 @@ jobs:
           WITH_V: true
           # PRERELEASE_SUFFIX: #comes from the previous step step
 
-      - name: Test Tag
-        run: |
-          echo ${{ steps.bump.outputs.new_tag.value }
-          echo ${{ steps.bump.outputs.tag.value }
-          echo ${{ steps.bump.outputs.part.value }
- 
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
