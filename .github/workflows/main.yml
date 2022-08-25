@@ -38,7 +38,7 @@ jobs:
       - name: Set PRELEASE_SUFFIX
         run: |
           SHORT_BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD | sed 's/.*\///g' | cut -c1-8)
-          echo "::set-env name=PRERELEASE_SUFFIX::${SHORT_BRANCH_NAME}"
+          echo "prerelease_suffix=${SHORT_BRANCH_NAME}" >> $GITHUB_ENV
 
       - name: Bump version but don't push tag
         id: bump
@@ -48,7 +48,7 @@ jobs:
           REPO_OWNER: synclinical
           DRY_RUN: true
           WITH_V: true
-          # PRERELEASE_SUFFIX: #comes from the previous step step
+          PRERELEASE_SUFFIX: ${{ env.prerelease_suffix }}
 
       - name: Release
         uses: softprops/action-gh-release@v1
