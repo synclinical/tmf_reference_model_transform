@@ -46,7 +46,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_OWNER: synclinical
-          DRY_RUN: true
           WITH_V: true
           PRERELEASE_SUFFIX: ${{ env.prerelease_suffix }}
 
