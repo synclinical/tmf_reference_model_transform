@@ -61,7 +61,7 @@ jobs:
         with:
           tag_name: "${{ steps.tag_version.outputs.new_tag }}"
           name: Release ${{ steps.tag_version.outputs.new_tag }}
-          generate_release_notes: true
+          generate_release_notes: false
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: ${{ github.ref != 'refs/heads/main' }}
           files: |

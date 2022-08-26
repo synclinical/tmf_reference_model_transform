@@ -1,6 +1,6 @@
 # tmf_reference_model_transform
 
-** NOTE: this package is in active development, and the generated output is subject to change until v1.0.0
+**NOTE: this package is in active development, and the generated output is subject to change until v1.0.0**
 
 Utility to transform the [Trial Master File Reference Model](https://tmfrefmodel.com/) into something easier to parse by software.
 
