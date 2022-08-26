@@ -1,0 +1,69 @@
+name: Build Trial Master File Reference Model Transformations
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-json:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        elixir: ["1.13.4"]
+        otp: ["25.0.4"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
+
+      - name: Install Dependencies
+        run: |
+          mix local.hex --force
+
+      - name: Run Transforms
+        run: |
+          elixir tmf-transform.exs
+
+      - name: Set PRELEASE_SUFFIX PR
+        if: github.event_name == 'pull_request'
+        run: |
+          SHORT_BRANCH_NAME=$(echo "${{ github.head_ref }}" | sed 's/.*\///g' | cut -c1-8)
+          echo "calculated short branch name: ${SHORT_BRANCH_NAME}"
+          echo "prerelease_suffix=${SHORT_BRANCH_NAME}" >> $GITHUB_ENV
+
+      - name: Set PRELEASE_SUFFIX PUSH
+        if: github.event_name == 'push'
+        run: |
+          SHORT_BRANCH_NAME=$(echo "${{ github.ref_name }}" | sed 's/.*\///g' | cut -c1-8)
+          echo "calculated short branch name: ${SHORT_BRANCH_NAME}"
+          echo "prerelease_suffix=${SHORT_BRANCH_NAME}" >> $GITHUB_ENV
+
+      - name: Bump version and push tag
+        id: tag_version
+        uses: anothrNick/github-tag-action@1.36.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: true
+          DRY_RUN: true # Action is out of date, can't push a tag
+          PRERELEASE_SUFFIX: ${{ env.prerelease_suffix }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "${{ steps.tag_version.outputs.new_tag }}"
+          name: Release ${{ steps.tag_version.outputs.new_tag }}
+          generate_release_notes: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: ${{ github.ref != 'refs/heads/main' }}
+          files: |
+            LICENSE
+            *.json
