@@ -38,6 +38,7 @@ jobs:
       - name: Set PRELEASE_SUFFIX
         run: |
           SHORT_BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/.*\///g' | cut -c1-8)
+          echo "calculated short branch name: ${SHORT_BRANCH_NAME}"
           echo "prerelease_suffix=${SHORT_BRANCH_NAME}" >> $GITHUB_ENV
 
       - name: Bump version and tag
@@ -45,6 +46,7 @@ jobs:
         uses: mathieudutour/github-tag-action@v6.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          release_branches: release.*,hotfix.*,master,main
           append_to_pre_release_tag: ${{ env.prerelease_suffix }}
           pre_release_branches: '^(?!main|master)'
 
