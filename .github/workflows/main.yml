@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+      - feat/init
 
 jobs:
   build-json:
@@ -48,7 +49,7 @@ jobs:
           dry_run: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
           release_branches: release.*,hotfix.*,master,main
-          # append_to_pre_release_tag: ${{ env.prerelease_suffix }}
+          append_to_pre_release_tag: ${{ env.prerelease_suffix }}
           # pre_release_branches: '^(?!main|master)'
 
       - name: Debug auto bump
