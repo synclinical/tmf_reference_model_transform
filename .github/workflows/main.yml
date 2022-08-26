@@ -46,7 +46,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           append_to_pre_release_tag: ${{ env.prerelease_suffix }}
-          pre_release_branches: '!main'
+          pre_release_branches: '^(?!main|master)'
 
       - name: Release
         uses: softprops/action-gh-release@v1
