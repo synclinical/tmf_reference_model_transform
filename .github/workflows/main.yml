@@ -40,20 +40,22 @@ jobs:
           SHORT_BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/.*\///g' | cut -c1-8)
           echo "prerelease_suffix=${SHORT_BRANCH_NAME}" >> $GITHUB_ENV
 
-      - name: Bump version but don't push tag
-        id: bump
-        uses: anothrNick/github-tag-action@1.36.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO_OWNER: synclinical
-          WITH_V: true
-          PRERELEASE_SUFFIX: ${{ env.prerelease_suffix }}
+      - name: Bump version and tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          append_to_pre_release_tag: ${{ env.prerelease_suffix }}
+          dry_run: true
 
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          # tag_name: "${{ steps.bump.outputs.new_tag }}"
+          tag_name: "${{ steps.tag_version.outputs.new_tag }}"
+          name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: ${{ steps.tag_version.outputs.changelog }}
+          generate_release_notes: true
+          token: ${{ secrets.GITHUB_TOKEN }}
           draft: ${{ github.ref != 'refs/heads/main' }}
           files: |
             LICENSE
