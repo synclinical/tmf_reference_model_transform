@@ -35,30 +35,35 @@ jobs:
         run: |
           elixir tmf-transform.exs
 
-      # - name: Set PRELEASE_SUFFIX
-      #   run: |
-      #     SHORT_BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/.*\///g' | cut -c1-8)
-      #     echo "calculated short branch name: ${SHORT_BRANCH_NAME}"
-      #     echo "prerelease_suffix=${SHORT_BRANCH_NAME}" >> $GITHUB_ENV
+      - name: Set PRELEASE_SUFFIX
+        run: |
+          SHORT_BRANCH_NAME=$(echo "${{ github.ref_name }}" | sed 's/.*\///g' | cut -c1-8)
+          echo "calculated short branch name: ${SHORT_BRANCH_NAME}"
+          echo "prerelease_suffix=${SHORT_BRANCH_NAME}" >> $GITHUB_ENV
 
       - name: Bump version and tag
         id: tag_version
         uses: mathieudutour/github-tag-action@v6.0
         with:
+          dry_run: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
           release_branches: release.*,hotfix.*,master,main
           # append_to_pre_release_tag: ${{ env.prerelease_suffix }}
           # pre_release_branches: '^(?!main|master)'
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: "${{ steps.tag_version.outputs.new_tag }}"
-          name: Release ${{ steps.tag_version.outputs.new_tag }}
-          body: ${{ steps.tag_version.outputs.changelog }}
-          generate_release_notes: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: ${{ github.ref != 'refs/heads/main' }}
-          files: |
-            LICENSE
-            *.json
+      - name: Debug auto bump
+        run: |
+          echo "Calculated autobump: ${{ steps.tag_version.outputs.new_tag }}"
+
+      # - name: Release
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     tag_name: "${{ steps.tag_version.outputs.new_tag }}"
+      #     name: Release ${{ steps.tag_version.outputs.new_tag }}
+      #     body: ${{ steps.tag_version.outputs.changelog }}
+      #     generate_release_notes: true
+      #     token: ${{ secrets.GITHUB_TOKEN }}
+      #     draft: ${{ github.ref != 'refs/heads/main' }}
+      #     files: |
+      #       LICENSE
+      #       *.json
