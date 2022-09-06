@@ -8,6 +8,10 @@ defmodule TmfReferenceModel.Loader do
   Loads the TMF Reference model workbook and extracts
   the first sheet into a list of lists.
   """
+
+  # the xlsx_reader package always us to specifiy how to convert
+  # numbers using Excel Number Formatting styles.
+  # See https://support.microsoft.com/en-us/office/available-number-formats-in-excel-0afe8f52-97db-41f1-b972-4b46e9f1e8d2
   @custom_formats [
     {"##.##", :string},
     {"00.00", :string},
@@ -15,6 +19,13 @@ defmodule TmfReferenceModel.Loader do
     {"#.#", :string}
   ]
 
+  @doc """
+  Reads and parses the XLSX file that contains the TMF Reference Model.
+
+  Returns a list of rows for the following sheets:
+    - The TMF Reference Model
+    - Glossary
+  """
   def load(input_file_path) do
     {:ok, package} = XlsxReader.open(input_file_path, supported_custom_formats: @custom_formats)
 
@@ -30,6 +41,8 @@ defmodule TmfReferenceModel.Transformer do
   into an elixir map.
   """
 
+  @section_separator " : "
+
   @doc """
   transform/1 takes a list of rows from the TMF Reference model spreadsheet
   and converts it into an Elixir map.
@@ -41,7 +54,7 @@ defmodule TmfReferenceModel.Transformer do
   end
 
   def transform({:ok, rows}), do: transform(rows)
-  def transform(any), do: IO.inspect(any, label: "Error loading rows:")
+  def transform(any), do: IO.puts("Error loading rows: #{any}")
 
   defp parse_header_rows(rows) do
     [title_row, headers_a, headers_b | rows] = rows
@@ -53,19 +66,20 @@ defmodule TmfReferenceModel.Transformer do
     }
   end
 
-  defp parse_metadata([title | title_row]) do
+  # This parses for the first row of the spreadsheet to get document metadata info
+  defp parse_metadata([document_title | additional_metadata] = _row_a) do
     ref_model_version =
-      title_row
+      additional_metadata
       |> Enum.find(&String.contains?(&1, "Version"))
       |> String.replace("Version", "")
       |> String.trim()
 
     ref_model_date =
-      title_row
+      additional_metadata
       |> Enum.find(&is_struct(&1, Date))
       |> to_string()
 
-    title = title |> String.trim()
+    title = document_title |> String.trim()
 
     %{
       :_generation_timestamp => DateTime.utc_now() |> DateTime.to_string(),
@@ -75,17 +89,16 @@ defmodule TmfReferenceModel.Transformer do
     }
   end
 
+  # There are 2 header rows, we need to combine them to handle
+  # sub sections and merged cells
   defp parse_headers(headers_a, headers_b) do
-    # There are 2 header rows, we need to combine them to handle
-    # sub sections and merged cells
-
     {_, headers} =
       Enum.zip_reduce(
         headers_a,
         headers_b,
         {"", []},
         fn a, b, {section, acc} ->
-          {s, h} = combine_headers(a, b, section)
+          {s, h} = combine_header_rows(a, b, section)
 
           # add header to accumulator list
           {s, [acc | [h |> String.replace("\r\n", " ") |> String.trim()]]}
@@ -96,14 +109,15 @@ defmodule TmfReferenceModel.Transformer do
     |> List.flatten()
   end
 
-  def combine_headers(a, b, section)
-  def combine_headers(a, "", _), do: {"", a}
-  def combine_headers("", b, ""), do: {"", b}
-  def combine_headers("", b, section), do: {"", concat_section_header(section, b)}
-  def combine_headers(a, b, ""), do: {a, concat_section_header(a, b)}
+  defp combine_header_rows(a, b, section)
+  defp combine_header_rows(a, "", _), do: {"", a}
+  defp combine_header_rows("", b, ""), do: {"", b}
+  defp combine_header_rows("", b, section), do: {"", concat_section_header(section, b)}
+  defp combine_header_rows(a, b, ""), do: {a, concat_section_header(a, b)}
 
-  defp concat_section_header(section, header), do: Enum.join([section, header], " : ")
-
+  # this transforms the rows of each spreadsheet into an Elixir Map,
+  # where each key matches a header value, and the value is data
+  # from each individual artifact.
   defp transform_artifacts(%{metadata: metadata, headers: headers, rows: rows}) do
     artifacts =
       rows
@@ -138,28 +152,44 @@ defmodule TmfReferenceModel.Transformer do
     %{metadata: metadata, artifacts: artifacts}
   end
 
-  defp has_section_marker?(str), do: String.contains?(str, " : ")
-
   defp split_string_with_multiple_lines(str) when is_binary(str) do
     str
     |> String.split("\r\n")
+    |> Enum.reject(fn s -> s == "" end)
     |> case do
-      [any] -> any
-      any -> any
+      [any] -> any |> String.trim() # return the only element in the list
+      any -> any |> Enum.map(&String.trim/1) # return list
     end
   end
 
   defp split_string_with_multiple_lines(other), do: other
 
   # Handle unexpected formatting in a given XLSX version of the reference model
+  # These numbers are actually in the spreadsheet, but do to Number Formatting
+  # options, they are shown as the shortened versions.
+  #
+  # So these functions exist to revert the floating point numbers
+  # back to what the user sees.
   defp special_conversion_hack("2.2000000000000002"), do: "2.2"
   defp special_conversion_hack("2.0099999999999998"), do: "2.01"
   defp special_conversion_hack("10.050000000000001"), do: "10.05"
   defp special_conversion_hack(any), do: any
 
+  defp concat_section_header(section, header) do
+    Enum.join([section, header], @section_separator)
+  end
+
+  defp split_key_to_section_and_header(key) do
+    String.split(key, @section_separator, trim: true, parts: 2)
+  end
+
+  defp has_section_marker?(str), do: String.contains?(str, @section_separator)
+
+  # creates a new map within the top level artifact that corresponds
+  # to a section from one of the 2 header rows in the spreadsheet.
   defp add_section_to_artifact(artifact, key, value) do
     # split key into section/header
-    [section, header] = String.split(key, " : ", trim: true, parts: 2)
+    [section, header] = split_key_to_section_and_header(key)
 
     {_, new_artifact} =
       artifact
@@ -177,8 +207,8 @@ end
 
 defmodule TmfReferenceModel.Encoder.Json do
   @moduledoc """
-  For the output of the Transfomer module, convert the map
-  into a JSON representation.
+  For the output of the Transformer module, convert the map
+  into a JSON representation where each Artifact is part of a flat list.
   """
 
   @doc """
@@ -197,6 +227,20 @@ defmodule TmfReferenceModel.Encoder.Json do
   end
 
   def encode(_), do: raise ArgumentError, "Must supply a map with metadata and artifacts keys"
+
+  @doc """
+  Encodes the given `artifacts` into JSON using `encode/1
+
+  """
+  def encode_and_write(artifacts, input_file_name) do
+    output_file = input_file_name |> String.replace(".xlsx", ".json")
+
+    artifacts
+    |> encode()
+    |> then(&File.write(output_file, &1))
+
+    IO.puts("JSON Output written to: #{output_file}")
+  end
 end
 
 defmodule TmfReferenceModel.Main do
@@ -206,20 +250,17 @@ defmodule TmfReferenceModel.Main do
 
   alias TmfReferenceModel.Loader
   alias TmfReferenceModel.Transformer
-  alias TmfReferenceModel.Encoder.Json
+  alias TmfReferenceModel.Encoder.{Json}
 
   def main() do
     input_file = "Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx"
-    output_file = input_file |> String.replace("xlsx", "json")
 
     input_file
     |> Loader.load()
     |> Transformer.transform()
-    |> Json.encode()
-    |> then(&File.write(output_file, &1))
-
-    IO.inspect(output_file, label: "Output written to")
+    |> tap( &Json.encode_and_write(&1, input_file))
   end
+
 end
 
 TmfReferenceModel.Main.main()
