@@ -278,7 +278,11 @@ end
 
 defmodule TmfReferenceModel.Main do
   @moduledoc """
-  Main entry point to the script
+  Main entry point to the script.
+
+  Reads in the TMF Reference Model as an Excel Spreadsheet with an .xlsx extension.
+
+  Outputs a JSON file where each artifact is an element in a list (ie flat, not a tree).
   """
 
   alias TmfReferenceModel.Loader
