@@ -27,11 +27,17 @@ defmodule TmfReferenceModel.Loader do
     - Glossary
   """
   def load(input_file_path) do
-    {:ok, package} = XlsxReader.open(input_file_path, supported_custom_formats: @custom_formats)
+    XlsxReader.open(input_file_path, supported_custom_formats: @custom_formats)
+    |> case do
+      {:ok, package} ->
+        # TODO: take sheet name as argument
+        # TODO: parse the Glossary Sheet
+        [sheet | _] = XlsxReader.sheet_names(package)
 
-    [sheet | _] = XlsxReader.sheet_names(package)
+        XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String)
 
-    XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String)
+      any -> any
+    end
   end
 end
 
@@ -52,9 +58,6 @@ defmodule TmfReferenceModel.Transformer do
     |> parse_header_rows()
     |> transform_artifacts()
   end
-
-  def transform({:ok, rows}), do: transform(rows)
-  def transform(any), do: IO.puts("Error loading rows: #{any}")
 
   defp parse_header_rows(rows) do
     # There are 3 "header" type rows:
@@ -102,9 +105,6 @@ defmodule TmfReferenceModel.Transformer do
   defp transform_artifacts(%{metadata: metadata, headers: headers, rows: rows}) do
     artifacts =
       rows
-      # if the row doesn't have any data in the first column, skip it
-      # if the row doesn't have any data in the first column, skip it
-      |> Enum.reject(fn [zone | _] -> zone == "" end)
       |> Enum.map(fn r ->
         # Combine the headers (artifact map keys] with the data from this row
         {_, artifact} =
@@ -244,30 +244,35 @@ defmodule TmfReferenceModel.Encoder.Json do
   convert it into it's JSON representation.
   """
   def encode(%{metadata: metadata, artifacts: artifacts}) do
-    %{
-      :_metadata => metadata,
-      artifacts: %{
-        :_count => artifacts |> Enum.count(),
-        items: artifacts
+    {:ok,
+      %{
+        :_metadata => metadata,
+        artifacts: %{
+          :_count => artifacts |> Enum.count(),
+          items: artifacts
+        }
       }
+      |> Jason.encode!(pretty: true)
     }
-    |> Jason.encode!(pretty: true)
   end
 
-  def encode(_), do: raise(ArgumentError, "Must supply a map with metadata and artifacts keys")
+  def encode(_), do: {:error, "missing metadata and artifact transformations"}
 
   @doc """
   Encodes the given `artifacts` into JSON using `encode/1
 
   """
   def encode_and_write(artifacts, input_file_name) do
-    output_file = input_file_name |> String.replace(".xlsx", ".json")
-
-    artifacts
-    |> encode()
-    |> then(&File.write(output_file, &1))
-
-    IO.puts("JSON Output written to: #{output_file}")
+    with {:ok, json} <- encode(artifacts)
+    do
+      output_file = input_file_name |> String.replace(".xlsx", ".json")
+      IO.puts("JSON Output written to: #{output_file}")
+      File.write(output_file, json)
+    else
+      {:error, message} = err ->
+        IO.puts("JSON Encoder: Error: #{message}")
+        err
+    end
   end
 end
 
@@ -281,12 +286,17 @@ defmodule TmfReferenceModel.Main do
   alias TmfReferenceModel.Encoder.{Json}
 
   def main() do
+    # TODO: take inputs
     input_file = "Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx"
 
-    input_file
-    |> Loader.load()
-    |> Transformer.transform()
-    |> tap(&Json.encode_and_write(&1, input_file))
+    with {:ok, rows} <- Loader.load(input_file)
+    do
+      rows
+      |> Transformer.transform()
+      |> tap(&Json.encode_and_write(&1, input_file))
+    else
+      {:error, message} -> IO.puts("Error: #{message}")
+    end
   end
 end
 
