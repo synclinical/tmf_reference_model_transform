@@ -57,11 +57,14 @@ defmodule TmfReferenceModel.Transformer do
   def transform(any), do: IO.puts("Error loading rows: #{any}")
 
   defp parse_header_rows(rows) do
+    # There are 3 "header" type rows:
+    #   The first is Sheet Metadata
+    #   The second and third are used to describe each artifact
     [title_row, headers_a, headers_b | rows] = rows
 
     %{
       metadata: title_row |> parse_metadata(),
-      headers: parse_headers(headers_a, headers_b),
+      headers: parse_headers_to_artifact_keys(headers_a, headers_b),
       rows: rows
     }
   end
@@ -74,6 +77,8 @@ defmodule TmfReferenceModel.Transformer do
       |> String.replace("Version", "")
       |> String.trim()
 
+    # xlsx_reader will have parsed the cell into a Date struct
+    # assuming Excel automatically formatted it.
     ref_model_date =
       additional_metadata
       |> Enum.find(&is_struct(&1, Date))
@@ -82,6 +87,8 @@ defmodule TmfReferenceModel.Transformer do
     title = document_title |> String.trim()
 
     %{
+      # :_generation_timestamp indicates when this script was run,
+      # and thus when the output was generated
       :_generation_timestamp => DateTime.utc_now() |> DateTime.to_string(),
       title: title,
       version: ref_model_version,
@@ -89,9 +96,84 @@ defmodule TmfReferenceModel.Transformer do
     }
   end
 
+  # this transforms the rows of each spreadsheet into an Elixir Map,
+  # where each key matches a header value, and the value is data
+  # from each individual artifact.
+  defp transform_artifacts(%{metadata: metadata, headers: headers, rows: rows}) do
+    artifacts =
+      rows
+      # if the row doesn't have any data in the first column, skip it
+      # if the row doesn't have any data in the first column, skip it
+      |> Enum.reject(fn [zone | _] -> zone == "" end)
+      |> Enum.map(fn r ->
+        # Combine the headers (artifact map keys] with the data from this row
+        {_, artifact} =
+          Enum.zip(headers, r)
+          # next, build a map with 1 or more nested maps in it from the list of tuples from zip/2
+          |> Enum.map_reduce(%{}, fn {k, v}, acc ->
+            # Preprocessing of string before storing it in the output
+            value =
+              v
+              |> special_conversion_hack()
+              |> split_string_with_multiple_lines()
+
+            # Search for Section headers (from the headers) to create sub maps
+            k
+            |> has_section_marker?()
+            |> case do
+              true ->
+                # Need to split key into section/header
+                {true, add_section_to_artifact(acc, k, value)}
+
+              false ->
+                {true, acc |> Map.put(k, value)}
+            end
+          end)
+
+        artifact
+      end)
+
+    %{metadata: metadata, artifacts: artifacts}
+  end
+
+  # If any string has "\r\n" and multiple lines of strings,
+  # Return a list instead of a string.
+  # Also trims the strings to remove white space
+  defp split_string_with_multiple_lines(str) when is_binary(str) do
+    str
+    |> String.split("\r\n")
+    |> Enum.reject(fn s -> s == "" end)
+    |> case do
+      # return the only element in the list
+      [any] -> any |> String.trim()
+      # return list
+      any -> any |> Enum.map(&String.trim/1)
+    end
+  end
+
+  # Value received in `other` is not a binary (string), do just return
+  # it instead of doing String processing
+  defp split_string_with_multiple_lines(other), do: other
+
+  # Handle unexpected formatting in a given XLSX version of the reference model
+  # These numbers are actually in the spreadsheet, but due to Number Formatting
+  # options, they are shown as the shortened versions.
+  #
+  # So these functions exist to revert the floating point numbers
+  # back to what the user sees.
+  defp special_conversion_hack("2.2000000000000002"), do: "2.2"
+  defp special_conversion_hack("2.0099999999999998"), do: "2.01"
+  defp special_conversion_hack("10.050000000000001"), do: "10.05"
+  defp special_conversion_hack(any), do: any
+
   # There are 2 header rows, we need to combine them to handle
-  # sub sections and merged cells
-  defp parse_headers(headers_a, headers_b) do
+  # sub sections and merged cells. This addresses key overlap.
+  # For example, "Sponsor Document" falls under:
+  #  1. TMF Artifacts (Non-device)
+  #  2. TMF Artifacts (Device)
+  # Later, The transform_artifacts function is left to decide how to
+  # created nested maps in the outputted map
+  defp parse_headers_to_artifact_keys(headers_a, headers_b) do
     {_, headers} =
       Enum.zip_reduce(
         headers_a,
@@ -109,80 +191,26 @@ defmodule TmfReferenceModel.Transformer do
     |> List.flatten()
   end
 
+  # built an Artifact key by combining Rows A and B, optionally
+  # inserting a "Section" header, ie a value from row A, but in
+  # a previous column.
   defp combine_header_rows(a, b, section)
   defp combine_header_rows(a, "", _), do: {"", a}
   defp combine_header_rows("", b, ""), do: {"", b}
   defp combine_header_rows("", b, section), do: {"", concat_section_header(section, b)}
   defp combine_header_rows(a, b, ""), do: {a, concat_section_header(a, b)}
 
-  # this transforms the rows of each spreadsheet into an Elixir Map,
-  # where each key matches a header value, and the value is data
-  # from each individual artifact.
-  defp transform_artifacts(%{metadata: metadata, headers: headers, rows: rows}) do
-    artifacts =
-      rows
-      |> Enum.reject(fn [zone | _] -> zone == "" end)
-      |> Enum.map(fn r ->
-        # Combine the List of headers with the list of data from this row
-        {_, artifact} =
-          Enum.zip(headers, r)
-          # Now convert the list of tuples into a map
-         |> Enum.map_reduce(%{}, fn {k, v}, acc ->
-            # if the value has `\r\n` in it, split into a list of strings
-            value =
-              v
-              |> special_conversion_hack()
-              |> split_string_with_multiple_lines()
-
-            # Search for Section headers (from the headers) to create sub maps
-            k
-            |> has_section_marker?()
-            |> case do
-              true ->
-                # Need to split key into section/header
-                {true, add_section_to_artifact(acc, k, value)}
-              false ->
-                {true, acc |> Map.put(k, value)}
-            end
-          end)
-
-        artifact
-      end)
-
-    %{metadata: metadata, artifacts: artifacts}
-  end
-
-  defp split_string_with_multiple_lines(str) when is_binary(str) do
-    str
-    |> String.split("\r\n")
-    |> Enum.reject(fn s -> s == "" end)
-    |> case do
-      [any] -> any |> String.trim() # return the only element in the list
-      any -> any |> Enum.map(&String.trim/1) # return list
-    end
-  end
-
-  defp split_string_with_multiple_lines(other), do: other
-
-  # Handle unexpected formatting in a given XLSX version of the reference model
-  # These numbers are actually in the spreadsheet, but do to Number Formatting
-  # options, they are shown as the shortened versions.
-  #
-  # So these functions exist to revert the floating point numbers
-  # back to what the user sees.
-  defp special_conversion_hack("2.2000000000000002"), do: "2.2"
-  defp special_conversion_hack("2.0099999999999998"), do: "2.01"
-  defp special_conversion_hack("10.050000000000001"), do: "10.05"
-  defp special_conversion_hack(any), do: any
-
+  # Build a string from 2 values
   defp concat_section_header(section, header) do
     Enum.join([section, header], @section_separator)
   end
 
+  # Split string into a 2 element list
   defp split_key_to_section_and_header(key) do
     String.split(key, @section_separator, trim: true, parts: 2)
   end
 
+  # Return true if the string is an output of concat_section_header/2
   defp has_section_marker?(str), do: String.contains?(str, @section_separator)
 
   # creates a new map within the top level artifact that corresponds
@@ -226,7 +254,7 @@ defmodule TmfReferenceModel.Encoder.Json do
     |> Jason.encode!(pretty: true)
   end
 
-  def encode(_), do: raise ArgumentError, "Must supply a map with metadata and artifacts keys"
+  def encode(_), do: raise(ArgumentError, "Must supply a map with metadata and artifacts keys")
 
   @doc """
   Encodes the given `artifacts` into JSON using `encode/1
@@ -258,9 +286,8 @@ defmodule TmfReferenceModel.Main do
     input_file
     |> Loader.load()
     |> Transformer.transform()
-    |> tap( &Json.encode_and_write(&1, input_file))
+    |> tap(&Json.encode_and_write(&1, input_file))
   end
-
 end
 
 TmfReferenceModel.Main.main()
