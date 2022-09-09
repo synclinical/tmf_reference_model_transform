@@ -1,6 +1,7 @@
 Mix.install([
   {:xlsx_reader, "~> 0.5.0"},
-  {:jason, "~> 1.3"}
+  {:jason, "~> 1.3"},
+  {:optimus, "~> 0.3.0"}
 ])
 
 defmodule TmfReferenceModel.Loader do
@@ -42,8 +43,7 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   from and converts it into an Elixir map.
   """
   def transform(package, sheet) do
-    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String)
-    do
+    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String) do
       {:ok, rows |> transform_rows()}
     end
   end
@@ -229,10 +229,8 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
 end
 
 defmodule TmfReferenceModel.Transformer.Glossary do
-
   def transform(package, sheet) do
-    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String)
-    do
+    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String) do
       {:ok, rows |> transform_rows()}
     end
   end
@@ -246,26 +244,27 @@ defmodule TmfReferenceModel.Transformer.Glossary do
         "Abbreviation" -> true
         "Zone" -> true
         "Item" -> true
-        _  -> false
+        _ -> false
       end
     end)
     |> Enum.map_reduce([], fn row, acc ->
       row
       |> parse()
       |> case do
-       {:merged, definition} ->
+        {:merged, definition} ->
           # The spreadsheet may use 2 cells to define an item.
           # when this happens, the "key" value is empty, but there is still a "value".
           # parse/1 will notice this, and return a :merged atom
           # to tell this function to look back into the accumulator for the last item
           # added, and replace that value.
 
-          #TODO: make this special case handling cleaner
+          # TODO: make this special case handling cleaner
           [{key, value} | _] = acc
 
           {nil, acc |> List.replace_at(0, {key, value <> " " <> definition})}
 
-        any -> {nil, [any | acc]}
+        any ->
+          {nil, [any | acc]}
       end
     end)
     |> then(fn {_, list} -> list end)
@@ -294,16 +293,15 @@ defmodule TmfReferenceModel.Encoder.Json do
   """
   def encode(%{reference_model: %{metadata: metadata, artifacts: artifacts}, glossary: glossary}) do
     {:ok,
-      %{
-        :_metadata => metadata,
-        artifacts: %{
-          :_count => artifacts |> Enum.count(),
-          items: artifacts
-        },
-        glossary: glossary
-      }
-      |> Jason.encode!(pretty: true)
-    }
+     %{
+       :_metadata => metadata,
+       artifacts: %{
+         :_count => artifacts |> Enum.count(),
+         items: artifacts
+       },
+       glossary: glossary
+     }
+     |> Jason.encode!(pretty: true)}
   end
 
   def encode(_), do: {:error, "missing metadata and artifact transformations"}
@@ -313,8 +311,7 @@ defmodule TmfReferenceModel.Encoder.Json do
 
   """
   def encode_and_write(artifacts, input_file_name) do
-    with {:ok, json} <- encode(artifacts)
-    do
+    with {:ok, json} <- encode(artifacts) do
       output_file = input_file_name |> String.replace(".xlsx", ".json")
       IO.puts("JSON Output written to: #{output_file}")
       File.write(output_file, json)
@@ -339,16 +336,77 @@ defmodule TmfReferenceModel.Main do
   alias TmfReferenceModel.Transformer.{Artifacts, Glossary}
   alias TmfReferenceModel.Encoder.{Json}
 
-  def main() do
-    # TODO: take inputs
-    input_file = "Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx"
-    artifact_sheet = "Ver 3.2.1 Clean"
-    glossary_sheet = "Instructions and Glossary"
+  defp default_file, do: "Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx"
+  defp default_sheet, do: "Ver 3.2.1 Clean"
+  defp default_glossary, do: "Instructions and Glossary"
+
+  def main(argv) do
+    argv
+    |> parse_args()
+    |> case do
+      :help -> print_help()
+      args -> transform(args)
+    end
+  end
+
+  defp print_help() do
+    """
+
+    tmf-transform
+    -------------
+    A utililty to parse the TMF Reference Model XLSX file into machine readable formats
+
+    Usage: `elixir tmf-transform.exs [path to file]`
+    If no path is passed, the default file is used.
+
+    Options:
+
+    -a/--artifact_sheet -> Name of worksheet containing the Reference Model
+    -g/--glossary_sheet -> Name of worksheet containing glossary information
+    """
+    |> IO.puts()
+  end
+
+  defp parse_args(argv) do
+    {options, args, _invalid} =
+      argv
+      |> OptionParser.parse(
+        switches: [artifact_sheet: :string, glossary_sheet: :string, help: :boolean],
+        aliases: [a: :artifact_sheet, g: :glossary_sheet, h: :help]
+      )
+
+    options
+    |> Keyword.has_key?(:help)
+    |> case do
+      true -> :help
+      false -> parse_args(args, options)
+    end
+  end
+
+  defp parse_args([], []), do: parse_args(default_file(), default_sheet(), default_glossary())
+  defp parse_args([], options), do: parse_args([default_file()], options)
+  defp parse_args([file], options) do
+    parse_args(
+      file,
+      options |> Keyword.get(:artifact_sheet, default_sheet()),
+      options |> Keyword.get(:glossary_sheet, default_glossary())
+    )
+  end
+
+  defp parse_args(file, artifact, glossary) do
+    %{
+      input_file: file,
+      artifact_sheet: artifact,
+      glossary_sheet: glossary
+    }
+  end
+
+  defp transform(%{input_file: input_file, artifact_sheet: artifact_sheet, glossary_sheet: glossary_sheet} = args) do
+    IO.inspect(args, label: "Parsing input", pretty: true)
 
     with {:ok, package} <- Loader.load(input_file),
          {:ok, artifacts} <- Artifacts.transform(package, artifact_sheet),
-         {:ok, glossary} <- Glossary.transform(package, glossary_sheet)
-    do
+         {:ok, glossary} <- Glossary.transform(package, glossary_sheet) do
       %{
         reference_model: artifacts,
         glossary: glossary
@@ -360,4 +418,5 @@ defmodule TmfReferenceModel.Main do
   end
 end
 
-TmfReferenceModel.Main.main()
+System.argv()
+|> TmfReferenceModel.Main.main()
