@@ -22,26 +22,14 @@ defmodule TmfReferenceModel.Loader do
   @doc """
   Reads and parses the XLSX file that contains the TMF Reference Model.
 
-  Returns a list of rows for the following sheets:
-    - The TMF Reference Model
-    - Glossary
+  Returns an OOXML Package
   """
   def load(input_file_path) do
     XlsxReader.open(input_file_path, supported_custom_formats: @custom_formats)
-    |> case do
-      {:ok, package} ->
-        # TODO: take sheet name as argument
-        # TODO: parse the Glossary Sheet
-        [sheet | _] = XlsxReader.sheet_names(package)
-
-        XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String)
-
-      any -> any
-    end
   end
 end
 
-defmodule TmfReferenceModel.Transformer do
+defmodule TmfReferenceModel.Transformer.Artifacts do
   @moduledoc """
   For the list of rows in a Worksheet, transform it
   into an elixir map.
@@ -50,10 +38,17 @@ defmodule TmfReferenceModel.Transformer do
   @section_separator " : "
 
   @doc """
-  transform/1 takes a list of rows from the TMF Reference model spreadsheet
-  and converts it into an Elixir map.
+  transform/2 takes an OOXML package and sheet to parse the TMF Reference model
+  from and converts it into an Elixir map.
   """
-  def transform(rows) when is_list(rows) do
+  def transform(package, sheet) do
+    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String)
+    do
+      {:ok, rows |> transform_rows()}
+    end
+  end
+
+  defp transform_rows(rows) when is_list(rows) do
     rows
     |> parse_header_rows()
     |> transform_artifacts()
@@ -233,6 +228,60 @@ defmodule TmfReferenceModel.Transformer do
   end
 end
 
+defmodule TmfReferenceModel.Transformer.Glossary do
+
+  def transform(package, sheet) do
+    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String)
+    do
+      {:ok, rows |> transform_rows()}
+    end
+  end
+
+  def transform_rows(rows) do
+    rows
+    |> Enum.reject(fn [key | _] ->
+      key
+      |> String.trim()
+      |> case do
+        "Abbreviation" -> true
+        "Zone" -> true
+        "Item" -> true
+        _  -> false
+      end
+    end)
+    |> Enum.map_reduce([], fn row, acc ->
+      row
+      |> parse()
+      |> case do
+       {:merged, definition} ->
+          # The spreadsheet may use 2 cells to define an item.
+          # when this happens, the "key" value is empty, but there is still a "value".
+          # parse/1 will notice this, and return a :merged atom
+          # to tell this function to look back into the accumulator for the last item
+          # added, and replace that value.
+
+          #TODO: make this special case handling cleaner
+          [{key, value} | _] = acc
+
+          {nil, acc |> List.replace_at(0, {key, value <> " " <> definition})}
+
+        any -> {nil, [any | acc]}
+      end
+    end)
+    |> then(fn {_, list} -> list end)
+    |> List.flatten()
+    |> Enum.into(%{})
+  end
+
+  defp parse(["", value | _]) do
+    {:merged, value |> String.trim()}
+  end
+
+  defp parse([key, value | _]) do
+    {key |> String.trim(), value |> String.trim()}
+  end
+end
+
 defmodule TmfReferenceModel.Encoder.Json do
   @moduledoc """
   For the output of the Transformer module, convert the map
@@ -243,14 +292,15 @@ defmodule TmfReferenceModel.Encoder.Json do
   Given an Elixir Map, with `:metadata` and `:artifacts` keys,
   convert it into it's JSON representation.
   """
-  def encode(%{metadata: metadata, artifacts: artifacts}) do
+  def encode(%{reference_model: %{metadata: metadata, artifacts: artifacts}, glossary: glossary}) do
     {:ok,
       %{
         :_metadata => metadata,
         artifacts: %{
           :_count => artifacts |> Enum.count(),
           items: artifacts
-        }
+        },
+        glossary: glossary
       }
       |> Jason.encode!(pretty: true)
     }
@@ -286,17 +336,23 @@ defmodule TmfReferenceModel.Main do
   """
 
   alias TmfReferenceModel.Loader
-  alias TmfReferenceModel.Transformer
+  alias TmfReferenceModel.Transformer.{Artifacts, Glossary}
   alias TmfReferenceModel.Encoder.{Json}
 
   def main() do
     # TODO: take inputs
     input_file = "Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx"
+    artifact_sheet = "Ver 3.2.1 Clean"
+    glossary_sheet = "Instructions and Glossary"
 
-    with {:ok, rows} <- Loader.load(input_file)
+    with {:ok, package} <- Loader.load(input_file),
+         {:ok, artifacts} <- Artifacts.transform(package, artifact_sheet),
+         {:ok, glossary} <- Glossary.transform(package, glossary_sheet)
     do
-      rows
-      |> Transformer.transform()
+      %{
+        reference_model: artifacts,
+        glossary: glossary
+      }
       |> tap(&Json.encode_and_write(&1, input_file))
     else
       {:error, message} -> IO.puts("Error: #{message}")
