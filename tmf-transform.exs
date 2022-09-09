@@ -354,7 +354,7 @@ defmodule TmfReferenceModel.Main do
 
     tmf-transform
     -------------
-    A utililty to parse the TMF Reference Model XLSX file into machine readable formats
+    A utility to parse the TMF Reference Model XLSX file into machine readable formats
 
     Usage: `elixir tmf-transform.exs [path to file]`
     If no path is passed, the default file is used.
