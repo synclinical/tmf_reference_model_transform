@@ -1,7 +1,6 @@
 Mix.install([
   {:xlsx_reader, "~> 0.5.0"},
-  {:jason, "~> 1.3"},
-  {:optimus, "~> 0.3.0"}
+  {:jason, "~> 1.3"}
 ])
 
 defmodule TmfReferenceModel.Loader do
@@ -385,6 +384,7 @@ defmodule TmfReferenceModel.Main do
 
   defp parse_args([], []), do: parse_args(default_file(), default_sheet(), default_glossary())
   defp parse_args([], options), do: parse_args([default_file()], options)
+
   defp parse_args([file], options) do
     parse_args(
       file,
@@ -401,7 +401,10 @@ defmodule TmfReferenceModel.Main do
     }
   end
 
-  defp transform(%{input_file: input_file, artifact_sheet: artifact_sheet, glossary_sheet: glossary_sheet} = args) do
+  defp transform(
+         %{input_file: input_file, artifact_sheet: artifact_sheet, glossary_sheet: glossary_sheet} =
+           args
+       ) do
     IO.inspect(args, label: "Parsing input", pretty: true)
 
     with {:ok, package} <- Loader.load(input_file),
