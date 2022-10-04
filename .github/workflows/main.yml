@@ -40,7 +40,7 @@ jobs:
       - name: Set PRELEASE_SUFFIX PR
         if: github.event_name == 'pull_request'
         run: |
-          SHORT_BRANCH_NAME=$(echo "${{ github.head_ref }}" | sed 's/.*\///g' | sed 's/-/_/g' | cut -c1-8)
+          SHORT_BRANCH_NAME=$(echo "${{ github.head_ref }}" | sed 's/.*\///g' | sed 's/_/-/g' | cut -d '-' -f1 | cut -c1-8)
           echo "calculated short branch name: ${SHORT_BRANCH_NAME}"
           echo "prerelease_suffix=${SHORT_BRANCH_NAME}" >> $GITHUB_ENV
           echo "tag_context=branch" >> $GITHUB_ENV
@@ -59,7 +59,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
-          DRY_RUN: ${{ env.tag_dry_run }} #can only push tags on main
+          DRY_RUN: true # action does not send all required data for creating reference. 
           PRERELEASE_SUFFIX: ${{ env.prerelease_suffix }}
           TAG_CONTEXT: ${{ env.tag_context }}
 
