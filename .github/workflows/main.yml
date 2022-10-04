@@ -10,6 +10,8 @@ jobs:
   build-json:
     name: Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       matrix:
         elixir: ["1.13.4"]
@@ -18,6 +20,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: "0"
 
       - name: Setup elixir
         uses: erlef/setup-beam@v1
@@ -49,11 +53,11 @@ jobs:
 
       - name: Bump version and push tag
         id: tag_version
-        uses: anothrNick/github-tag-action@1.36.0
+        uses: anothrNick/github-tag-action@1.51.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
-          DRY_RUN: true # Action is out of date, can't push a tag
+          # DRY_RUN: true # Action is out of date, can't push a tag
           PRERELEASE_SUFFIX: ${{ env.prerelease_suffix }}
 
       - name: Release
