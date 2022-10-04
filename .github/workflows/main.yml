@@ -40,7 +40,7 @@ jobs:
       - name: Set PRELEASE_SUFFIX PR
         if: github.event_name == 'pull_request'
         run: |
-          SHORT_BRANCH_NAME=$(echo "${{ github.head_ref }}" | sed 's/.*\///g' | cut -c1-8)
+          SHORT_BRANCH_NAME=$(echo "${{ github.head_ref }}" | sed 's/.*\///g' | sed 's/-/_/g' | cut -c1-8)
           echo "calculated short branch name: ${SHORT_BRANCH_NAME}"
           echo "prerelease_suffix=${SHORT_BRANCH_NAME}" >> $GITHUB_ENV
 
