@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      metadata: write
     strategy:
       matrix:
         elixir: ["1.13.4"]
