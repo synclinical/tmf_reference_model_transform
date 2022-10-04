@@ -44,6 +44,7 @@ jobs:
           echo "calculated short branch name: ${SHORT_BRANCH_NAME}"
           echo "prerelease_suffix=${SHORT_BRANCH_NAME}" >> $GITHUB_ENV
           echo "tag_context=branch" >> $GITHUB_ENV
+          echo "tag_dry_run=true" >> $GITHUB_ENV
 
       - name: Set PRELEASE_SUFFIX PUSH
         if: github.event_name == 'push'
@@ -58,7 +59,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
-          # DRY_RUN: true # Action is out of date, can't push a tag
+          DRY_RUN: ${{ env.tag_dry_run }} #can only push tags on main
           PRERELEASE_SUFFIX: ${{ env.prerelease_suffix }}
           TAG_CONTEXT: ${{ env.tag_context }}
 
