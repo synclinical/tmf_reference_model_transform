@@ -59,7 +59,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
-          DRY_RUN: ${{ env.tag_dry_run }} #can only push tags on main
+          DRY_RUN: true # action does not send all required data for creating reference. 
           PRERELEASE_SUFFIX: ${{ env.prerelease_suffix }}
           TAG_CONTEXT: ${{ env.tag_context }}
 
