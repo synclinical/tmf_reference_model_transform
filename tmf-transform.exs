@@ -1,6 +1,7 @@
 Mix.install([
-  {:xlsx_reader, "~> 0.5.0"},
-  {:jason, "~> 1.3"}
+  {:xlsx_reader, "~> 0.7.0"},
+  {:jason, "~> 1.4"},
+  {:req, "~> 0.4.0"}
 ])
 
 defmodule TmfReferenceModel.Loader do
@@ -41,16 +42,16 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   transform/2 takes an OOXML package and sheet to parse the TMF Reference model
   from and converts it into an Elixir map.
   """
-  def transform(package, sheet) do
+  def transform(package, sheet, add_embeddings?) do
     with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String) do
-      {:ok, rows |> transform_rows()}
+      {:ok, rows |> transform_rows(add_embeddings?)}
     end
   end
 
-  defp transform_rows(rows) when is_list(rows) do
+  defp transform_rows(rows, add_embeddings?) when is_list(rows) do
     rows
     |> parse_header_rows()
-    |> transform_artifacts()
+    |> transform_artifacts(add_embeddings?)
   end
 
   defp parse_header_rows(rows) do
@@ -93,73 +94,6 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
     }
   end
 
-  # this transforms the rows of each spreadsheet into an Elixir Map,
-  # where each key matches a header value, and the value is data
-  # from each individual artifact.
-  defp transform_artifacts(%{metadata: metadata, headers: headers, rows: rows}) do
-    artifacts =
-      rows
-      |> Enum.map(fn r ->
-        # Combine the headers (artifact map keys] with the data from this row
-        {_, artifact} =
-          Enum.zip(headers, r)
-          # next, build a map with 1 or more nested maps in it from the list of tuples from zip/2
-          |> Enum.map_reduce(%{}, fn {k, v}, acc ->
-            # Preprocessing of string before storing it in the output
-            value =
-              v
-              |> special_conversion_hack()
-              |> split_string_with_multiple_lines()
-
-            # Search for Section headers (from the headers) to create sub maps
-            k
-            |> has_section_marker?()
-            |> case do
-              true ->
-                # Need to split key into section/header
-                {true, add_section_to_artifact(acc, k, value)}
-
-              false ->
-                {true, acc |> Map.put(k, value)}
-            end
-          end)
-
-        artifact
-      end)
-
-    %{metadata: metadata, artifacts: artifacts}
-  end
-
-  # If any string has "\r\n" and multiple lines of strings,
-  # Return a list instead of a string.
-  # Also trims the strings to remove white space
-  defp split_string_with_multiple_lines(str) when is_binary(str) do
-    str
-    |> String.split("\r\n")
-    |> Enum.reject(fn s -> s == "" end)
-    |> case do
-      # return the only element in the list
-      [any] -> any |> String.trim()
-      # return list
-      any -> any |> Enum.map(&String.trim/1)
-    end
-  end
-
-  # Value received in `other` is not a binary (string), do just return
-  # it instead of doing String processing
-  defp split_string_with_multiple_lines(other), do: other
-
-  # Handle unexpected formatting in a given XLSX version of the reference model
-  # These numbers are actually in the spreadsheet, but due to Number Formatting
-  # options, they are shown as the shortened versions.
-  #
-  # So these functions exist to revert the floating point numbers
-  # back to what the user sees.
-  defp special_conversion_hack("2.2000000000000002"), do: "2.2"
-  defp special_conversion_hack("2.0099999999999998"), do: "2.01"
-  defp special_conversion_hack("10.050000000000001"), do: "10.05"
-  defp special_conversion_hack(any), do: any
-
   # There are 2 header rows, we need to combine them to handle
   # sub sections and merged cells. This addresses key overlap.
   # For example, "Sponsor Document" falls under:
@@ -199,10 +133,74 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
     Enum.join([section, header], @section_separator)
   end
 
-  # Split string into a 2 element list
-  defp split_key_to_section_and_header(key) do
-    String.split(key, @section_separator, trim: true, parts: 2)
+  # this transforms the rows of each spreadsheet into an Elixir Map,
+  # where each key matches a header value, and the value is data
+  # from each individual artifact.
+  defp transform_artifacts(%{metadata: metadata, headers: headers, rows: rows}, add_embeddings?) do
+    artifacts =
+      rows
+      |> Enum.map(fn r ->
+        # Combine the headers (artifact map keys] with the data from this row
+        {_, artifact} =
+          Enum.zip(headers, r)
+          # next, build a map with 1 or more nested maps in it from the list of tuples from zip/2
+          |> Enum.map_reduce(%{}, fn {k, v}, acc ->
+            # Preprocessing of string before storing it in the output
+            value =
+              v
+              |> special_conversion_hack()
+              |> split_string_with_multiple_lines()
+
+            # Search for Section headers (from the headers) to create sub maps
+            k
+            |> has_section_marker?()
+            |> case do
+              true ->
+                # Need to split key into section/header
+                {true, add_section_to_artifact(acc, k, value)}
+
+              false ->
+                {true, acc |> Map.put(k, value)}
+            end
+          end)
+
+        artifact
+      end)
+
+      artifacts = artifacts |> maybe_add_embeddings(add_embeddings?)
+
+    %{metadata: metadata, artifacts: artifacts}
   end
+
+  # Handle unexpected formatting in a given XLSX version of the reference model
+  # These numbers are actually in the spreadsheet, but due to Number Formatting
+  # options, they are shown as the shortened versions.
+  #
+  # So these functions exist to revert the floating point numbers
+  # back to what the user sees.
+  defp special_conversion_hack("2.2000000000000002"), do: "2.2"
+  defp special_conversion_hack("2.0099999999999998"), do: "2.01"
+  defp special_conversion_hack("10.050000000000001"), do: "10.05"
+  defp special_conversion_hack(any), do: any
+
+  # If any string has "\r\n" and multiple lines of strings,
+  # Return a list instead of a string.
+  # Also trims the strings to remove white space
+  defp split_string_with_multiple_lines(str) when is_binary(str) do
+    str
+    |> String.split("\r\n")
+    |> Enum.reject(fn s -> s == "" end)
+    |> case do
+      # return the only element in the list
+      [any] -> any |> String.trim()
+      # return list
+      any -> any |> Enum.map(&String.trim/1)
+    end
+  end
+
+  # Value received in `other` is not a binary (string), do just return
+  # it instead of doing String processing
+  defp split_string_with_multiple_lines(other), do: other
 
   # Return true if the string is an output of concat_section_header/2
   defp has_section_marker?(str), do: String.contains?(str, @section_separator)
@@ -225,6 +223,59 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
 
     new_artifact
   end
+
+  # Split string into a 2 element list
+  defp split_key_to_section_and_header(key) do
+    String.split(key, @section_separator, trim: true, parts: 2)
+  end
+
+  defp maybe_add_embeddings(artifacts, false), do: artifacts
+  defp maybe_add_embeddings(artifacts, true) do
+    artifacts
+    |> Enum.chunk_every(10)
+    |> tap(fn _ -> IO.write(".") end)
+    |> Enum.flat_map(&add_embeddings/1)
+  end
+
+  defp add_embeddings(artifacts) do
+    sources =
+      artifacts
+      |> Enum.with_index()
+      |> Enum.into(%{}, fn {artifact, i} -> {i, embedding_source(artifact)} end)
+      |> IO.inspect
+
+    embeddings =
+      Req.post!("https://api.openai.com/v1/embeddings", auth: {:bearer, System.get_env("OPENAI_API_KEY")}, json: %{
+        input: Map.values(sources),
+        model: "text-embedding-ada-002"
+      }).body["data"]
+      |> IO.inspect
+      |> Enum.into(%{}, &({&1["index"], &1["embedding"]}))
+      |> IO.inspect
+
+    artifacts
+      |> Enum.with_index()
+      |> Enum.map(fn {artifact, i} -> (Map.put(
+        artifact,
+        :vector,
+        %{
+          source: sources[i],
+          embedding: embeddings[i]
+        }
+      )) end)
+      |> IO.inspect
+  end
+
+  defp embedding_source(artifact) do
+     [
+       list_or_string_to_string(artifact["Artifact name"]),
+       list_or_string_to_string(artifact["Definition / Purpose"]),
+       list_or_string_to_string(artifact["Recommended Subartifacts -  Documents/documentation recommended to be filed to the artifact."])
+     ].join(" ")
+  end
+
+  defp list_or_string_to_string(arg) when is_binary(arg), do: arg
+  defp list_or_string_to_string(arg) when is_list(arg), do: Enum.join(arg, " ")
 end
 
 defmodule TmfReferenceModel.Transformer.Glossary do
@@ -355,13 +406,14 @@ defmodule TmfReferenceModel.Main do
     -------------
     A utility to parse the TMF Reference Model XLSX file into machine readable formats
 
-    Usage: `elixir tmf-transform.exs [path to file]`
+    Usembeddingsagembeddings: `elixir tmf-transform.exs [path to file] [OPTIONS]`
     If no path is passed, the default file is used.
 
     Options:
 
     -a/--artifact_sheet -> Name of worksheet containing the Reference Model
     -g/--glossary_sheet -> Name of worksheet containing glossary information
+    -e/--embeddings     -> Generate embeddings. Requires $OPENAI_API_KEY to be set in environment
     """
     |> IO.puts()
   end
@@ -370,8 +422,8 @@ defmodule TmfReferenceModel.Main do
     {options, args, _invalid} =
       argv
       |> OptionParser.parse(
-        switches: [artifact_sheet: :string, glossary_sheet: :string, help: :boolean],
-        aliases: [a: :artifact_sheet, g: :glossary_sheet, h: :help]
+        switches: [artifact_sheet: :string, glossary_sheet: :string, embeddings: :boolean, help: :boolean],
+        aliases: [a: :artifact_sheet, g: :glossary_sheet, e: :embeddings, h: :help]
       )
 
     options
@@ -382,33 +434,37 @@ defmodule TmfReferenceModel.Main do
     end
   end
 
-  defp parse_args([], []), do: parse_args(default_file(), default_sheet(), default_glossary())
+  defp parse_args([], []), do: parse_args(default_file(), default_sheet(), default_glossary(), false)
   defp parse_args([], options), do: parse_args([default_file()], options)
-
   defp parse_args([file], options) do
     parse_args(
       file,
       options |> Keyword.get(:artifact_sheet, default_sheet()),
-      options |> Keyword.get(:glossary_sheet, default_glossary())
+      options |> Keyword.get(:glossary_sheet, default_glossary()),
+      options |> Keyword.get(:embeddings, false)
     )
   end
-
-  defp parse_args(file, artifact, glossary) do
+  defp parse_args(file, artifact, glossary, embeddings) do
     %{
       input_file: file,
       artifact_sheet: artifact,
-      glossary_sheet: glossary
+      glossary_sheet: glossary,
+      embeddings: embeddings
     }
   end
 
   defp transform(
-         %{input_file: input_file, artifact_sheet: artifact_sheet, glossary_sheet: glossary_sheet} =
+         %{input_file: input_file,
+           artifact_sheet: artifact_sheet,
+           glossary_sheet: glossary_sheet,
+           embeddings: embeddings} =
            args
        ) do
+
     IO.inspect(args, label: "Parsing input", pretty: true)
 
     with {:ok, package} <- Loader.load(input_file),
-         {:ok, artifacts} <- Artifacts.transform(package, artifact_sheet),
+         {:ok, artifacts} <- Artifacts.transform(package, artifact_sheet, embeddings),
          {:ok, glossary} <- Glossary.transform(package, glossary_sheet) do
       %{
         reference_model: artifacts,
