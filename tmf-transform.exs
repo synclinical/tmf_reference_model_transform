@@ -43,15 +43,25 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   from and converts it into an Elixir map.
   """
   def transform(package, sheet, add_embeddings?) do
-    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String) do
-      {:ok, rows |> transform_rows(add_embeddings?)}
+    with {:ok, api_key}  <- maybe_get_api_key(add_embeddings?),
+         {:ok, rows}     <- XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String)
+    do
+      {:ok, rows |> transform_rows(api_key)}
     end
   end
 
-  defp transform_rows(rows, add_embeddings?) when is_list(rows) do
+  defp maybe_get_api_key(false), do: {:ok, nil}
+  defp maybe_get_api_key(true) do
+    case System.get_env("OPENAI_API_KEY") do
+      nil -> {:error, "Embeddings requested but OPENAI_API_KEY is not set in environement."}
+      key -> {:ok, key}
+    end
+  end
+
+  defp transform_rows(rows, api_key) when is_list(rows) do
     rows
     |> parse_header_rows()
-    |> transform_artifacts(add_embeddings?)
+    |> transform_artifacts(api_key)
   end
 
   defp parse_header_rows(rows) do
@@ -111,7 +121,7 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
           {s, h} = combine_header_rows(a, b, section)
 
           # add header to accumulator list
-          {s, [acc | [h |> String.replace("\r\n", " ") |> String.trim()]]}
+          {s, [acc | [h |> String.replace("\r\n", " ") |> String.split() |> Enum.join(" ")]]}
         end
       )
 
@@ -136,7 +146,7 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   # this transforms the rows of each spreadsheet into an Elixir Map,
   # where each key matches a header value, and the value is data
   # from each individual artifact.
-  defp transform_artifacts(%{metadata: metadata, headers: headers, rows: rows}, add_embeddings?) do
+  defp transform_artifacts(%{metadata: metadata, headers: headers, rows: rows}, api_key) do
     artifacts =
       rows
       |> Enum.map(fn r ->
@@ -167,7 +177,7 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
         artifact
       end)
 
-      artifacts = artifacts |> maybe_add_embeddings(add_embeddings?)
+      artifacts = artifacts |> maybe_add_embeddings(api_key)
 
     %{metadata: metadata, artifacts: artifacts}
   end
@@ -229,53 +239,69 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
     String.split(key, @section_separator, trim: true, parts: 2)
   end
 
-  defp maybe_add_embeddings(artifacts, false), do: artifacts
-  defp maybe_add_embeddings(artifacts, true) do
-    artifacts
-    |> Enum.chunk_every(10)
-    |> tap(fn _ -> IO.write(".") end)
-    |> Enum.flat_map(&add_embeddings/1)
+  defp maybe_add_embeddings(artifacts, nil), do: artifacts
+  defp maybe_add_embeddings(artifacts, api_key) do
+      artifacts
+      |> Enum.chunk_every(10) # So as not to exceed the OpenAI token limit
+      |> Enum.flat_map(fn chunk -> add_embeddings(chunk, api_key) end)
   end
 
-  defp add_embeddings(artifacts) do
+  defp add_embeddings(artifacts, api_key) do
+    IO.write(".")
+
+    # We can't gurantee that OpenAI will return embeddings in the same order as sent in.
+    # Instead we need to rely on the "index:" field that OpenAI returns.
+    #
+    # Here we convert our source values into a map indexed by order so that we can match
+    # them up with the embeddings returned later.
     sources =
       artifacts
       |> Enum.with_index()
       |> Enum.into(%{}, fn {artifact, i} -> {i, embedding_source(artifact)} end)
-      |> IO.inspect
 
-    embeddings =
-      Req.post!("https://api.openai.com/v1/embeddings", auth: {:bearer, System.get_env("OPENAI_API_KEY")}, json: %{
-        input: Map.values(sources),
-        model: "text-embedding-ada-002"
-      }).body["data"]
-      |> IO.inspect
+    # Similarly, we will convert the list of embeddings returned by OpenAI to a map
+    # indexed by the  returned "index:" field.
+    embeddings = get_embeddings!(Map.values(sources), api_key)
       |> Enum.into(%{}, &({&1["index"], &1["embedding"]}))
-      |> IO.inspect
 
     artifacts
       |> Enum.with_index()
       |> Enum.map(fn {artifact, i} -> (Map.put(
         artifact,
-        :vector,
+        :embeddings,
         %{
           source: sources[i],
-          embedding: embeddings[i]
+          vector: embeddings[i]
         }
       )) end)
-      |> IO.inspect
   end
 
   defp embedding_source(artifact) do
-     [
-       list_or_string_to_string(artifact["Artifact name"]),
-       list_or_string_to_string(artifact["Definition / Purpose"]),
-       list_or_string_to_string(artifact["Recommended Subartifacts -  Documents/documentation recommended to be filed to the artifact."])
-     ].join(" ")
+    [
+      "Artifact name",
+      "Definition / Purpose",
+      "Recommended Subartifacts - Documents/documentation recommended to be filed to the artifact."
+    ]
+    |> Enum.map(&(list_or_string_to_string(artifact[&1])))
+    |> Enum.join(" ")
   end
 
   defp list_or_string_to_string(arg) when is_binary(arg), do: arg
   defp list_or_string_to_string(arg) when is_list(arg), do: Enum.join(arg, " ")
+
+  def get_embeddings!(sources, api_key) do
+    resp = Req.post!("https://api.openai.com/v1/embeddings", auth: {:bearer, api_key || "boom"}, json: %{
+      input: sources,
+      model: "text-embedding-ada-002"
+    }).body
+
+    if Map.has_key?(resp, "data") do
+      resp["data"]
+    else
+      error = resp["error"]["message"]
+      raise("Could not get embeddings: #{error}")
+    end
+  end
 end
 
 defmodule TmfReferenceModel.Transformer.Glossary do
@@ -363,7 +389,7 @@ defmodule TmfReferenceModel.Encoder.Json do
   def encode_and_write(artifacts, input_file_name) do
     with {:ok, json} <- encode(artifacts) do
       output_file = input_file_name |> String.replace(".xlsx", ".json")
-      IO.puts("JSON Output written to: #{output_file}")
+      IO.puts("\nJSON output written to: #{output_file}")
       File.write(output_file, json)
     else
       {:error, message} = err ->
