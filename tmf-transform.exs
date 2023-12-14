@@ -10,14 +10,14 @@ defmodule TmfReferenceModel.Loader do
   the first sheet into a list of lists.
   """
 
-  # the xlsx_reader package always us to specifiy how to convert
+  # the xlsx_reader package allows us to specifiy how to convert
   # numbers using Excel Number Formatting styles.
   # See https://support.microsoft.com/en-us/office/available-number-formats-in-excel-0afe8f52-97db-41f1-b972-4b46e9f1e8d2
   @custom_formats [
     {"##.##", :string},
     {"00.00", :string},
     {"0.0", :string},
-    {"#.#", :string}
+    {"#.#", :string},
   ]
 
   @doc """
@@ -43,25 +43,15 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   from and converts it into an Elixir map.
   """
   def transform(package, sheet, add_embeddings?) do
-    with {:ok, api_key}  <- maybe_get_api_key(add_embeddings?),
-         {:ok, rows}     <- XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String)
-    do
-      {:ok, rows |> transform_rows(api_key)}
+    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false) do
+      {:ok, rows |> transform_rows(add_embeddings?)}
     end
   end
 
-  defp maybe_get_api_key(false), do: {:ok, nil}
-  defp maybe_get_api_key(true) do
-    case System.get_env("OPENAI_API_KEY") do
-      nil -> {:error, "Embeddings requested but OPENAI_API_KEY is not set in environement."}
-      key -> {:ok, key}
-    end
-  end
-
-  defp transform_rows(rows, api_key) when is_list(rows) do
+  defp transform_rows(rows, add_embeddings?) when is_list(rows) do
     rows
     |> parse_header_rows()
-    |> transform_artifacts(api_key)
+    |> transform_artifacts(add_embeddings?)
   end
 
   defp parse_header_rows(rows) do
@@ -146,7 +136,7 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   # this transforms the rows of each spreadsheet into an Elixir Map,
   # where each key matches a header value, and the value is data
   # from each individual artifact.
-  defp transform_artifacts(%{metadata: metadata, headers: headers, rows: rows}, api_key) do
+  defp transform_artifacts(%{metadata: metadata, headers: headers, rows: rows}, add_embeddings?) do
     artifacts =
       rows
       |> Enum.map(fn r ->
@@ -156,10 +146,7 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
           # next, build a map with 1 or more nested maps in it from the list of tuples from zip/2
           |> Enum.map_reduce(%{}, fn {k, v}, acc ->
             # Preprocessing of string before storing it in the output
-            value =
-              v
-              |> special_conversion_hack()
-              |> split_string_with_multiple_lines()
+            value = v |> split_string_with_multiple_lines()
 
             # Search for Section headers (from the headers) to create sub maps
             k
@@ -174,24 +161,20 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
             end
           end)
 
-        artifact
+        artifact |> fix_up_section()
       end)
 
-      artifacts = artifacts |> maybe_add_embeddings(api_key)
+      artifacts = artifacts |> maybe_add_embeddings(add_embeddings?)
 
     %{metadata: metadata, artifacts: artifacts}
   end
 
-  # Handle unexpected formatting in a given XLSX version of the reference model
-  # These numbers are actually in the spreadsheet, but due to Number Formatting
-  # options, they are shown as the shortened versions.
-  #
-  # So these functions exist to revert the floating point numbers
-  # back to what the user sees.
-  defp special_conversion_hack("2.2000000000000002"), do: "2.2"
-  defp special_conversion_hack("2.0099999999999998"), do: "2.01"
-  defp special_conversion_hack("10.050000000000001"), do: "10.05"
-  defp special_conversion_hack(any), do: any
+  # The xlsx reader somestimes reads the section number (e.g. 08.02) as a float (e.g. 8.019999999999999).
+  # But since the section number is always the same as the first two components of the artifact number, we
+  # can just replace one with the other.
+  defp fix_up_section(artifact) do
+    Map.put(artifact, "Section #", artifact["Artifact #"] |> String.slice(0..4))
+  end
 
   # If any string has "\r\n" and multiple lines of strings,
   # Return a list instead of a string.
@@ -239,14 +222,14 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
     String.split(key, @section_separator, trim: true, parts: 2)
   end
 
-  defp maybe_add_embeddings(artifacts, nil), do: artifacts
-  defp maybe_add_embeddings(artifacts, api_key) do
+  defp maybe_add_embeddings(artifacts, true) do
       artifacts
       |> Enum.chunk_every(10) # So as not to exceed the OpenAI token limit
-      |> Enum.flat_map(fn chunk -> add_embeddings(chunk, api_key) end)
+      |> Enum.flat_map(fn chunk -> add_embeddings(chunk) end)
   end
+  defp maybe_add_embeddings(artifacts, _), do: artifacts
 
-  defp add_embeddings(artifacts, api_key) do
+  defp add_embeddings(artifacts) do
     IO.write(".")
 
     # We can't gurantee that OpenAI will return embeddings in the same order as sent in.
@@ -261,7 +244,7 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
 
     # Similarly, we will convert the list of embeddings returned by OpenAI to a map
     # indexed by the  returned "index:" field.
-    embeddings = get_embeddings!(Map.values(sources), api_key)
+    embeddings = get_embeddings!(Map.values(sources))
       |> Enum.into(%{}, &({&1["index"], &1["embedding"]}))
 
     artifacts
@@ -280,7 +263,8 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
     [
       "Artifact name",
       "Definition / Purpose",
-      "Recommended Subartifacts - Documents/documentation recommended to be filed to the artifact."
+      "Recommended Subartifacts - Documents/documentation recommended to be filed to the artifact.",
+      "Zone Name"
     ]
     |> Enum.map(&(list_or_string_to_string(artifact[&1])))
     |> Enum.join(" ")
@@ -289,7 +273,8 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   defp list_or_string_to_string(arg) when is_binary(arg), do: arg
   defp list_or_string_to_string(arg) when is_list(arg), do: Enum.join(arg, " ")
 
-  def get_embeddings!(sources, api_key) do
+  def get_embeddings!(sources) do
+    api_key = System.fetch_env!("OPENAI_API_KEY")
     resp = Req.post!("https://api.openai.com/v1/embeddings", auth: {:bearer, api_key || "boom"}, json: %{
       input: sources,
       model: "text-embedding-ada-002"
@@ -306,7 +291,7 @@ end
 
 defmodule TmfReferenceModel.Transformer.Glossary do
   def transform(package, sheet) do
-    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String) do
+    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false) do
       {:ok, rows |> transform_rows()}
     end
   end
@@ -386,9 +371,13 @@ defmodule TmfReferenceModel.Encoder.Json do
   Encodes the given `artifacts` into JSON using `encode/1
 
   """
-  def encode_and_write(artifacts, input_file_name) do
+  def encode_and_write(artifacts, input_file_name, true), do: encode_and_write(artifacts, "Embed-#{input_file_name}", false )
+  def encode_and_write(artifacts, input_file_name, _) do
     with {:ok, json} <- encode(artifacts) do
-      output_file = input_file_name |> String.replace(".xlsx", ".json")
+      output_file =
+        input_file_name
+        |> String.replace(".xlsx", ".json")
+
       IO.puts("\nJSON output written to: #{output_file}")
       File.write(output_file, json)
     else
@@ -412,8 +401,9 @@ defmodule TmfReferenceModel.Main do
   alias TmfReferenceModel.Transformer.{Artifacts, Glossary}
   alias TmfReferenceModel.Encoder.{Json}
 
-  defp default_file, do: "Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx"
-  defp default_sheet, do: "Ver 3.2.1 Clean"
+  # defp default_file, do: "Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx"
+  defp default_file, do: "Version_3.3.1_TMF_Reference_Model_11-Aug-2023.xlsx"
+  defp default_sheet, do: "V 3.3.1 Clean"
   defp default_glossary, do: "Instructions and Glossary"
 
   def main(argv) do
@@ -432,7 +422,7 @@ defmodule TmfReferenceModel.Main do
     -------------
     A utility to parse the TMF Reference Model XLSX file into machine readable formats
 
-    Usembeddingsagembeddings: `elixir tmf-transform.exs [path to file] [OPTIONS]`
+    Usage: `elixir tmf-transform.exs [path to file] [OPTIONS]`
     If no path is passed, the default file is used.
 
     Options:
@@ -489,14 +479,15 @@ defmodule TmfReferenceModel.Main do
 
     IO.inspect(args, label: "Parsing input", pretty: true)
 
-    with {:ok, package} <- Loader.load(input_file),
+    with {:ok, package}   <- Loader.load(input_file),
          {:ok, artifacts} <- Artifacts.transform(package, artifact_sheet, embeddings),
-         {:ok, glossary} <- Glossary.transform(package, glossary_sheet) do
+         {:ok, glossary}  <- Glossary.transform(package, glossary_sheet)
+    do
       %{
         reference_model: artifacts,
         glossary: glossary
       }
-      |> tap(&Json.encode_and_write(&1, input_file))
+      |> tap(&Json.encode_and_write(&1, input_file, embeddings))
     else
       {:error, message} -> IO.puts("Error: #{message}")
     end
