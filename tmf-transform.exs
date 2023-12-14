@@ -146,7 +146,10 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
           # next, build a map with 1 or more nested maps in it from the list of tuples from zip/2
           |> Enum.map_reduce(%{}, fn {k, v}, acc ->
             # Preprocessing of string before storing it in the output
-            value = v |> split_string_with_multiple_lines()
+            value =
+              v
+              |> special_conversion_hack()
+              |> split_string_with_multiple_lines()
 
             # Search for Section headers (from the headers) to create sub maps
             k
@@ -169,9 +172,25 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
     %{metadata: metadata, artifacts: artifacts}
   end
 
+  # Handle unexpected formatting in a given XLSX version of the reference model
+  # These numbers are actually in the spreadsheet, but due to Number Formatting
+  # options, they are shown as the shortened versions.
+  #
+  # So these functions exist to revert the floating point numbers
+  # back to what the user sees.
+  #
+  # Note, this particular hack applies only to the ICH Code column of
+  # Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx. The Section # column
+  # can get similarly borked, but the fix_up_section/1, will address those.
+  defp special_conversion_hack("2.2000000000000002"), do: "2.2"
+  defp special_conversion_hack(any), do: any
+
   # The xlsx reader somestimes reads the section number (e.g. 08.02) as a float (e.g. 8.019999999999999).
   # But since the section number is always the same as the first two components of the artifact number, we
   # can just replace one with the other.
+  #
+  # Applies to both Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx and
+  # Version_3.3.1_TMF_Reference_Model_11-Aug-2023.xlsx
   defp fix_up_section(artifact) do
     Map.put(artifact, "Section #", artifact["Artifact #"] |> String.slice(0..4))
   end
