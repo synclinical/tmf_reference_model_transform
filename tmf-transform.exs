@@ -42,16 +42,16 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   transform/2 takes an OOXML package and sheet to parse the TMF Reference model
   from and converts it into an Elixir map.
   """
-  def transform(package, sheet, add_embeddings?) do
+  def transform(package, sheet) do
     with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false) do
-      {:ok, rows |> transform_rows(add_embeddings?)}
+      {:ok, rows |> transform_rows()}
     end
   end
 
-  defp transform_rows(rows, add_embeddings?) when is_list(rows) do
+  defp transform_rows(rows) when is_list(rows) do
     rows
     |> parse_header_rows()
-    |> transform_artifacts(add_embeddings?)
+    |> transform_artifacts()
   end
 
   defp parse_header_rows(rows) do
@@ -136,7 +136,7 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   # this transforms the rows of each spreadsheet into an Elixir Map,
   # where each key matches a header value, and the value is data
   # from each individual artifact.
-  defp transform_artifacts(%{metadata: metadata, headers: headers, rows: rows}, add_embeddings?) do
+  defp transform_artifacts(%{metadata: metadata, headers: headers, rows: rows}) do
     artifacts =
       rows
       |> Enum.map(fn r ->
@@ -166,8 +166,6 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
 
         artifact |> fix_up_section()
       end)
-
-      artifacts = artifacts |> maybe_add_embeddings(add_embeddings?)
 
     %{metadata: metadata, artifacts: artifacts}
   end
@@ -240,15 +238,16 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   defp split_key_to_section_and_header(key) do
     String.split(key, @section_separator, trim: true, parts: 2)
   end
+end
 
-  defp maybe_add_embeddings(artifacts, true) do
+defmodule TmfReferenceModel.Embeddings.OpenAI do
+  def add_embeddings(artifacts) do
       artifacts
       |> Enum.chunk_every(10) # So as not to exceed the OpenAI token limit
-      |> Enum.flat_map(fn chunk -> add_embeddings(chunk) end)
+      |> Enum.flat_map(fn chunk -> do_add_embeddings(chunk) end)
   end
-  defp maybe_add_embeddings(artifacts, _), do: artifacts
 
-  defp add_embeddings(artifacts) do
+  defp do_add_embeddings(artifacts) do
     IO.write(".")
 
     # We can't gurantee that OpenAI will return embeddings in the same order as sent in.
@@ -292,7 +291,7 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   defp list_or_string_to_string(arg) when is_binary(arg), do: arg
   defp list_or_string_to_string(arg) when is_list(arg), do: Enum.join(arg, " ")
 
-  def get_embeddings!(sources) do
+  defp get_embeddings!(sources) do
     api_key = System.fetch_env!("OPENAI_API_KEY")
     resp = Req.post!("https://api.openai.com/v1/embeddings", auth: {:bearer, api_key || "boom"}, json: %{
       input: sources,
@@ -418,7 +417,8 @@ defmodule TmfReferenceModel.Main do
 
   alias TmfReferenceModel.Loader
   alias TmfReferenceModel.Transformer.{Artifacts, Glossary}
-  alias TmfReferenceModel.Encoder.{Json}
+  alias TmfReferenceModel.Encoder.Json
+  alias TmfReferenceModel.Embeddings.OpenAI, as: Embeddings
 
   # defp default_file, do: "Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx"
   defp default_file, do: "Version_3.3.1_TMF_Reference_Model_11-Aug-2023.xlsx"
@@ -499,7 +499,8 @@ defmodule TmfReferenceModel.Main do
     IO.inspect(args, label: "Parsing input", pretty: true)
 
     with {:ok, package}   <- Loader.load(input_file),
-         {:ok, artifacts} <- Artifacts.transform(package, artifact_sheet, embeddings),
+         {:ok, artifacts} <- Artifacts.transform(package, artifact_sheet),
+         {:ok, artifacts} <- maybe_add_embeddings(artifacts, embeddings),
          {:ok, glossary}  <- Glossary.transform(package, glossary_sheet)
     do
       %{
@@ -511,6 +512,9 @@ defmodule TmfReferenceModel.Main do
       {:error, message} -> IO.puts("Error: #{message}")
     end
   end
+
+  defp maybe_add_embeddings(artifacts, true), do: {:ok, Embeddings.add_embeddings(artifacts)}
+  defp maybe_add_embeddings(artifacts, _), do: {:ok, artifacts}
 end
 
 System.argv()
