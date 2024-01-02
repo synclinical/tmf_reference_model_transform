@@ -1,6 +1,7 @@
 Mix.install([
-  {:xlsx_reader, "~> 0.5.0"},
-  {:jason, "~> 1.3"}
+  {:xlsx_reader, "~> 0.7.0"},
+  {:jason, "~> 1.4"},
+  {:req, "~> 0.4.0"}
 ])
 
 defmodule TmfReferenceModel.Loader do
@@ -9,7 +10,7 @@ defmodule TmfReferenceModel.Loader do
   the first sheet into a list of lists.
   """
 
-  # the xlsx_reader package always us to specifiy how to convert
+  # the xlsx_reader package allows us to specifiy how to convert
   # numbers using Excel Number Formatting styles.
   # See https://support.microsoft.com/en-us/office/available-number-formats-in-excel-0afe8f52-97db-41f1-b972-4b46e9f1e8d2
   @custom_formats [
@@ -24,8 +25,16 @@ defmodule TmfReferenceModel.Loader do
 
   Returns an OOXML Package
   """
-  def load(input_file_path) do
-    XlsxReader.open(input_file_path, supported_custom_formats: @custom_formats)
+  def load(input_file_path, alias_file_path) do
+    with {:ok, package} <- XlsxReader.open(input_file_path, supported_custom_formats: @custom_formats),
+         {:ok, json} <- load_aliases(alias_file_path) do
+      {:ok, package, json}
+    end
+  end
+
+  defp load_aliases(file_name) do
+    with {:ok, body} <- File.read(file_name),
+         {:ok, json} <- Jason.decode(body), do: {:ok, json}
   end
 end
 
@@ -42,7 +51,7 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   from and converts it into an Elixir map.
   """
   def transform(package, sheet) do
-    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String) do
+    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false) do
       {:ok, rows |> transform_rows()}
     end
   end
@@ -93,6 +102,45 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
     }
   end
 
+  # There are 2 header rows, we need to combine them to handle
+  # sub sections and merged cells. This addresses key overlap.
+  # For example, "Sponsor Document" falls under:
+  #  1. TMF Artifacts (Non-device)
+  #  2. TMF Artifacts (Device)
+  # Later, The transform_artifacts function is left to decide how to
+  # created nested maps in the outputted map
+  defp parse_headers_to_artifact_keys(headers_a, headers_b) do
+    {_, headers} =
+      Enum.zip_reduce(
+        headers_a,
+        headers_b,
+        {"", []},
+        fn a, b, {section, acc} ->
+          {s, h} = combine_header_rows(a, b, section)
+
+          # add header to accumulator list
+          {s, [acc | [h |> String.replace("\r\n", " ") |> String.split() |> Enum.join(" ")]]}
+        end
+      )
+
+    headers
+    |> List.flatten()
+  end
+
+  # built an Artifact key by combining Rows A and B, optionally
+  # inserting a "Section" header, ie a value from row A, but in
+  # a previous column.
+  defp combine_header_rows(a, b, section)
+  defp combine_header_rows(a, "", _), do: {"", a}
+  defp combine_header_rows("", b, ""), do: {"", b}
+  defp combine_header_rows("", b, section), do: {"", concat_section_header(section, b)}
+  defp combine_header_rows(a, b, ""), do: {a, concat_section_header(a, b)}
+
+  # Build a string from 2 values
+  defp concat_section_header(section, header) do
+    Enum.join([section, header], @section_separator)
+  end
+
   # this transforms the rows of each spreadsheet into an Elixir Map,
   # where each key matches a header value, and the value is data
   # from each individual artifact.
@@ -124,10 +172,33 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
             end
           end)
 
-        artifact
+        artifact |> fix_up_section()
       end)
 
     %{metadata: metadata, artifacts: artifacts}
+  end
+
+  # Handle unexpected formatting in a given XLSX version of the reference model
+  # These numbers are actually in the spreadsheet, but due to Number Formatting
+  # options, they are shown as the shortened versions.
+  #
+  # So these functions exist to revert the floating point numbers
+  # back to what the user sees.
+  #
+  # Note, this particular hack applies only to the ICH Code column of
+  # Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx. The Section # column
+  # can get similarly borked, but the fix_up_section/1, will address those.
+  defp special_conversion_hack("2.2000000000000002"), do: "2.2"
+  defp special_conversion_hack(any), do: any
+
+  # The xlsx reader somestimes reads the section number (e.g. 08.02) as a float (e.g. 8.019999999999999).
+  # But since the section number is always the same as the first two components of the artifact number, we
+  # can just replace one with the other.
+  #
+  # Applies to both Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx and
+  # Version_3.3.1_TMF_Reference_Model_11-Aug-2023.xlsx
+  defp fix_up_section(artifact) do
+    Map.put(artifact, "Section #", artifact["Artifact #"] |> String.slice(0..4))
   end
 
   # If any string has "\r\n" and multiple lines of strings,
@@ -148,61 +219,6 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   # Value received in `other` is not a binary (string), do just return
   # it instead of doing String processing
   defp split_string_with_multiple_lines(other), do: other
-
-  # Handle unexpected formatting in a given XLSX version of the reference model
-  # These numbers are actually in the spreadsheet, but due to Number Formatting
-  # options, they are shown as the shortened versions.
-  #
-  # So these functions exist to revert the floating point numbers
-  # back to what the user sees.
-  defp special_conversion_hack("2.2000000000000002"), do: "2.2"
-  defp special_conversion_hack("2.0099999999999998"), do: "2.01"
-  defp special_conversion_hack("10.050000000000001"), do: "10.05"
-  defp special_conversion_hack(any), do: any
-
-  # There are 2 header rows, we need to combine them to handle
-  # sub sections and merged cells. This addresses key overlap.
-  # For example, "Sponsor Document" falls under:
-  #  1. TMF Artifacts (Non-device)
-  #  2. TMF Artifacts (Device)
-  # Later, The transform_artifacts function is left to decide how to
-  # created nested maps in the outputted map
-  defp parse_headers_to_artifact_keys(headers_a, headers_b) do
-    {_, headers} =
-      Enum.zip_reduce(
-        headers_a,
-        headers_b,
-        {"", []},
-        fn a, b, {section, acc} ->
-          {s, h} = combine_header_rows(a, b, section)
-
-          # add header to accumulator list
-          {s, [acc | [h |> String.replace("\r\n", " ") |> String.trim()]]}
-        end
-      )
-
-    headers
-    |> List.flatten()
-  end
-
-  # built an Artifact key by combining Rows A and B, optionally
-  # inserting a "Section" header, ie a value from row A, but in
-  # a previous column.
-  defp combine_header_rows(a, b, section)
-  defp combine_header_rows(a, "", _), do: {"", a}
-  defp combine_header_rows("", b, ""), do: {"", b}
-  defp combine_header_rows("", b, section), do: {"", concat_section_header(section, b)}
-  defp combine_header_rows(a, b, ""), do: {a, concat_section_header(a, b)}
-
-  # Build a string from 2 values
-  defp concat_section_header(section, header) do
-    Enum.join([section, header], @section_separator)
-  end
-
-  # Split string into a 2 element list
-  defp split_key_to_section_and_header(key) do
-    String.split(key, @section_separator, trim: true, parts: 2)
-  end
 
   # Return true if the string is an output of concat_section_header/2
   defp has_section_marker?(str), do: String.contains?(str, @section_separator)
@@ -225,12 +241,90 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
 
     new_artifact
   end
+
+  # Split string into a 2 element list
+  defp split_key_to_section_and_header(key) do
+    String.split(key, @section_separator, trim: true, parts: 2)
+  end
+end
+
+defmodule TmfReferenceModel.Augmentor do
+  def add_document_aliases(artifacts, %{"aliases" => aliases}) do
+    artifacts
+    |> Enum.map(& Map.put(&1, "aliases", aliases[&1["Artifact #"]] || []))
+    |> then(& {:ok, &1})
+  end
+end
+
+defmodule TmfReferenceModel.Embeddings.OpenAI do
+  def add_embeddings(artifacts) do
+      artifacts
+      |> Enum.chunk_every(10) # So as not to exceed the OpenAI token limit
+      |> Enum.flat_map(fn chunk -> do_add_embeddings(chunk) end)
+  end
+
+  defp do_add_embeddings(artifacts) do
+    IO.write(".")
+
+    # We can't gurantee that OpenAI will return embeddings in the same order as sent in.
+    # Instead we need to rely on the "index:" field that OpenAI returns.
+    #
+    # Here we convert our source values into a map indexed by order so that we can match
+    # them up with the embeddings returned later.
+    sources =
+      artifacts
+      |> Enum.with_index()
+      |> Enum.into(%{}, fn {artifact, i} -> {i, embedding_source(artifact)} end)
+
+    # Similarly, we will convert the list of embeddings returned by OpenAI to a map
+    # indexed by the  returned "index:" field.
+    embeddings = get_embeddings!(Map.values(sources))
+      |> Enum.into(%{}, &({&1["index"], &1["embedding"]}))
+
+    artifacts
+      |> Enum.with_index()
+      |> Enum.map(fn {artifact, i} -> (Map.put(
+        artifact,
+        :embeddings,
+        %{
+          source: sources[i],
+          vector: embeddings[i]
+        }
+      )) end)
+  end
+
+  defp embedding_source(artifact) do
+    documents =
+      [artifact["Recommended Subartifacts - Documents/documentation recommended to be filed to the artifact."]] ++ artifact["aliases"]
+      |> List.flatten()
+      |> Enum.join(", ")
+
+    ~s< Document names: #{documents}.> <>
+    ~s< Zone: #{artifact["Zone Name"]}.>
+  end
+
+  defp get_embeddings!(sources) do
+    api_key = System.fetch_env!("OPENAI_API_KEY")
+    resp = Req.post!("https://api.openai.com/v1/embeddings", auth: {:bearer, api_key || "boom"}, json: %{
+      input: sources,
+      model: "text-embedding-ada-002"
+    }).body
+
+    if Map.has_key?(resp, "data") do
+      resp["data"]
+    else
+      error = resp["error"]["message"]
+      raise("Could not get embeddings: #{error}")
+    end
+  end
 end
 
 defmodule TmfReferenceModel.Transformer.Glossary do
-  def transform(package, sheet) do
-    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false, number_type: String) do
-      {:ok, rows |> transform_rows()}
+  def transform(package, sheet, %{"glossary" => glossary}) do
+    with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false) do
+      rows
+      |> transform_rows()
+      |> then(& {:ok, Map.merge(&1, glossary)})
     end
   end
 
@@ -309,10 +403,14 @@ defmodule TmfReferenceModel.Encoder.Json do
   Encodes the given `artifacts` into JSON using `encode/1
 
   """
-  def encode_and_write(artifacts, input_file_name) do
+  def encode_and_write(artifacts, input_file_name, true), do: encode_and_write(artifacts, "Embed-#{input_file_name}", false )
+  def encode_and_write(artifacts, input_file_name, _) do
     with {:ok, json} <- encode(artifacts) do
-      output_file = input_file_name |> String.replace(".xlsx", ".json")
-      IO.puts("JSON Output written to: #{output_file}")
+      output_file =
+        input_file_name
+        |> String.replace(".xlsx", ".json")
+
+      IO.puts("\nJSON output written to: #{output_file}")
       File.write(output_file, json)
     else
       {:error, message} = err ->
@@ -333,10 +431,15 @@ defmodule TmfReferenceModel.Main do
 
   alias TmfReferenceModel.Loader
   alias TmfReferenceModel.Transformer.{Artifacts, Glossary}
-  alias TmfReferenceModel.Encoder.{Json}
+  alias TmfReferenceModel.Encoder.Json
+  alias TmfReferenceModel.Augmentor
+  alias TmfReferenceModel.Embeddings.OpenAI, as: Embeddings
 
-  defp default_file, do: "Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx"
-  defp default_sheet, do: "Ver 3.2.1 Clean"
+  @document_alias_file "document_aliases.json"
+
+  # defp default_file, do: "Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx"
+  defp default_file, do: "Version_3.3.1_TMF_Reference_Model_11-Aug-2023.xlsx"
+  defp default_sheet, do: "V 3.3.1 Clean"
   defp default_glossary, do: "Instructions and Glossary"
 
   def main(argv) do
@@ -355,13 +458,14 @@ defmodule TmfReferenceModel.Main do
     -------------
     A utility to parse the TMF Reference Model XLSX file into machine readable formats
 
-    Usage: `elixir tmf-transform.exs [path to file]`
+    Usage: `elixir tmf-transform.exs [path to file] [OPTIONS]`
     If no path is passed, the default file is used.
 
     Options:
 
     -a/--artifact_sheet -> Name of worksheet containing the Reference Model
     -g/--glossary_sheet -> Name of worksheet containing glossary information
+    -e/--embeddings     -> Generate embeddings. Requires $OPENAI_API_KEY to be set in environment
     """
     |> IO.puts()
   end
@@ -370,8 +474,8 @@ defmodule TmfReferenceModel.Main do
     {options, args, _invalid} =
       argv
       |> OptionParser.parse(
-        switches: [artifact_sheet: :string, glossary_sheet: :string, help: :boolean],
-        aliases: [a: :artifact_sheet, g: :glossary_sheet, h: :help]
+        switches: [artifact_sheet: :string, glossary_sheet: :string, embeddings: :boolean, help: :boolean],
+        aliases: [a: :artifact_sheet, g: :glossary_sheet, e: :embeddings, h: :help]
       )
 
     options
@@ -382,43 +486,53 @@ defmodule TmfReferenceModel.Main do
     end
   end
 
-  defp parse_args([], []), do: parse_args(default_file(), default_sheet(), default_glossary())
+  defp parse_args([], []), do: parse_args(default_file(), default_sheet(), default_glossary(), false)
   defp parse_args([], options), do: parse_args([default_file()], options)
-
   defp parse_args([file], options) do
     parse_args(
       file,
       options |> Keyword.get(:artifact_sheet, default_sheet()),
-      options |> Keyword.get(:glossary_sheet, default_glossary())
+      options |> Keyword.get(:glossary_sheet, default_glossary()),
+      options |> Keyword.get(:embeddings, false)
     )
   end
-
-  defp parse_args(file, artifact, glossary) do
+  defp parse_args(file, artifact, glossary, embeddings) do
     %{
       input_file: file,
       artifact_sheet: artifact,
-      glossary_sheet: glossary
+      glossary_sheet: glossary,
+      embeddings: embeddings
     }
   end
 
   defp transform(
-         %{input_file: input_file, artifact_sheet: artifact_sheet, glossary_sheet: glossary_sheet} =
+         %{input_file: input_file,
+           artifact_sheet: artifact_sheet,
+           glossary_sheet: glossary_sheet,
+           embeddings: add_embeddings?} =
            args
        ) do
+
     IO.inspect(args, label: "Parsing input", pretty: true)
 
-    with {:ok, package} <- Loader.load(input_file),
-         {:ok, artifacts} <- Artifacts.transform(package, artifact_sheet),
-         {:ok, glossary} <- Glossary.transform(package, glossary_sheet) do
+    with {:ok, package, json_aliases}  <- Loader.load(input_file, @document_alias_file),
+         {:ok, %{metadata: _metadata, artifacts: artifacts} = ref_model} <- Artifacts.transform(package, artifact_sheet),
+         {:ok, artifacts} <- Augmentor.add_document_aliases(artifacts, json_aliases),
+         {:ok, artifacts} <- maybe_add_embeddings(artifacts, add_embeddings?),
+         {:ok, glossary}  <- Glossary.transform(package, glossary_sheet, json_aliases)
+    do
       %{
-        reference_model: artifacts,
+        reference_model: %{ref_model | artifacts: artifacts},
         glossary: glossary
       }
-      |> tap(&Json.encode_and_write(&1, input_file))
+      |> tap(&Json.encode_and_write(&1, input_file, add_embeddings?))
     else
       {:error, message} -> IO.puts("Error: #{message}")
     end
   end
+
+  defp maybe_add_embeddings(artifacts, true), do: {:ok, Embeddings.add_embeddings(artifacts)}
+  defp maybe_add_embeddings(artifacts, _), do: {:ok, artifacts}
 end
 
 System.argv()

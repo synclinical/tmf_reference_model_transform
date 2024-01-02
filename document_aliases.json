@@ -1,0 +1,1423 @@
+{
+  "aliases": {
+    "01.01.01": [
+      "TMF Plan",
+      "TMF Migration Plan",
+      "Trial Master File Migration Plan",
+      "TMF Index",
+      "TMF Specifications",
+      "TMF Conventions",
+      "Trial Master File Conventions",
+      "Trial Master File Specifications",
+      "Filing Plan",
+      "File Management Plan",
+      "TMF QC",
+      "Trial Master File QC",
+      "FMP"
+    ],
+
+    "01.01.02": [
+      "Project Plan",
+      "Study Oversight Plan",
+      "Oversight Plan",
+      "Clinical Oversight Plan"
+    ],
+
+    "01.01.03": [
+      "Audit Plan",
+      "Audit List"
+    ],
+
+    "01.01.04": [
+      "SOP List"
+    ],
+
+    "01.01.05": [
+      "Study Manual",
+      "Log",
+      "Form",
+      "Manual of Procedures",
+      "MOP",
+      "Plan",
+      "Manual"
+    ],
+
+    "01.01.06": [
+      "Retention Plan",
+      "Recruitment Plan",
+      "Start-up Plan",
+      "Study Start-up Plan",
+      "Site Start-up Plan"
+    ],
+
+    "01.01.08": [
+      "Clinical Monitoring Plan",
+      "CMP"
+    ],
+
+    "01.01.09": [
+      "Medical Oversight Plan",
+      "MMP"
+    ],
+
+    "01.01.12": [
+      "Metrics",
+      "Dashboard",
+      "Enrollment Report"
+    ],
+
+    "01.01.15": [
+      "NTF Master List",
+      "NTF List",
+      "Note to File Master List",
+      "Note to File List"
+    ],
+
+    "01.01.16": [
+      "RACT",
+      "Risk Assessment and Categorization Tool"
+    ],
+
+    "01.01.17": [
+      "Vendor Oversight Plan",
+      "Vendor Plan",
+      "Supplier Plan",
+      "Supplier Oversight Plan",
+      "Service Provider Oversight Plan",
+      "Service Provider Plan",
+      "CRO Oversight Plan"
+    ],
+
+    "01.01.18": [
+      "Scope of Work",
+      "RACI"
+    ],
+
+    "01.01.19": [
+      "Scope of Work",
+      "TORO"
+    ],
+
+    "01.02.01": [
+      "Team List",
+      "Team Contact List",
+      "Contact List",
+      "Sponsor Contact List",
+      "Team Roster",
+      "Handover",
+      "Transition Form"
+    ],
+
+    "01.02.02": [
+      "CVs",
+      "Resumes"
+    ],
+
+    "01.03.01": [
+      "DSMB Charter",
+      "Data Safety Monitoring Board Charter",
+      "DMC Charter",
+      "Data Monitoring Committee Charter",
+      "IDMC Charter",
+      "Independent Data Monitoring Committee Charter",
+      "Adjudication Plan",
+      "Adjudication Committee Charter",
+      "Event Adjudication Committee Charter",
+      "Event Committee Charter",
+      "Dose Escalation Committee Charter",
+      "Dose Escalation Plan",
+      "EAC Charter"
+    ],
+
+    "01.03.02": [
+      "DSMB Roster",
+      "Data Safety Monitoring Board Roster",
+      "DMC Roster",
+      "Data Monitoring Committee Roster",
+      "IDMC Roster",
+      "Independent Data Monitoring Committee Roster",
+      "Adjudication Committee Roster",
+      "Event Adjudication Committee Roster",
+      "Safety Committee Roster",
+      "Dose Escalation Committee Roster",
+      "DSMB List",
+      "Data Safety Monitoring Board List",
+      "DMC List",
+      "Data Monitoring Committee List",
+      "IDMC List",
+      "Independent Data Monitoring Committee List",
+      "Adjudication Committee List",
+      "Event Adjudication Committee List",
+      "Safety Committee List",
+      "Dose Escalation Committee List"
+    ],
+
+    "01.03.03": [
+      "DSMB Materials",
+      "Data Safety Monitoring Board Materials",
+      "DMC Materials",
+      "Data Monitoring Committee Materials",
+      "IDMC Materials",
+      "Independent Data Monitoring Committee Materials",
+      "Adjudication Committee Materials",
+      "Event Adjudication Committee Materials",
+      "Event Committee Materials",
+      "Dose Escalation Committee Materials",
+      "Dose Escalation Materials",
+      "EAC Materials",
+      "DSMB Minutes",
+      "Data Safety Monitoring Board Minutes",
+      "DMC Minutes",
+      "Data Monitoring Committee Minutes",
+      "IDMC Minutes",
+      "Independent Data Monitoring Committee Minutes",
+      "Adjudication Committee Minutes",
+      "Event Adjudication Committee Minutes",
+      "Event Committee Minutes",
+      "Dose Escalation Committee Minutes",
+      "Dose Escalation Minutes",
+      "EAC Minutes",
+      "DSMB Agenda",
+      "Data Safety Monitoring Board Agenda",
+      "DMC Agenda",
+      "Data Monitoring Committee Agenda",
+      "IDMC Agenda",
+      "Independent Data Monitoring Committee Agenda",
+      "Adjudication Committee Agenda",
+      "Event Adjudication Committee Agenda",
+      "Event Committee Agenda",
+      "Dose Escalation Committee Agenda",
+      "Dose Escalation Agenda",
+      "EAC Agenda",
+      "DSMB Recommendation",
+      "Data Safety Monitoring Board Recommendation",
+      "DMC Recommendation",
+      "Data Monitoring Committee Recommendation",
+      "IDMC Recommendation",
+      "Independent Data Monitoring Committee Recommendation",
+      "Adjudication Committee Recommendation",
+      "Event Adjudication Committee Recommendation",
+      "Event Committee Recommendation",
+      "Dose Escalation Committee Recommendation",
+      "Dose Escalation Recommendation",
+      "EAC Recommendation"
+    ],
+
+    "01.03.04": [
+      "DSMB CV",
+      "Data Safety Monitoring Board CV",
+      "DMC CV",
+      "Data Monitoring Committee CV",
+      "IDMC CV",
+      "Independent Data Monitoring Committee CV",
+      "DSMB Member CV",
+      "Data Safety Monitoring Board Member CV",
+      "DMC Member CV",
+      "Data Monitoring Committee Member CV",
+      "IDMC Member CV",
+      "Independent Data Monitoring Committee Member CV",
+      "Adjudication Committee CV",
+      "Adjudication Committee Member CV",
+      "Event Committee CV",
+      "Event Committee Member CV"
+    ],
+
+    "01.03.05": [
+      "DSMB Financial Disclosure",
+      "Data Safety Monitoring Board Financial Disclosure",
+      "DMC Financial Disclosure",
+      "Data Monitoring Committee Financial Disclosure",
+      "IDMC Financial Disclosure",
+      "Independent Data Monitoring Committee Financial Disclosure",
+      "DSMB Member Financial Disclosure",
+      "Data Safety Monitoring Board Member Financial Disclosure",
+      "DMC Member Financial Disclosure",
+      "Data Monitoring Committee Member Financial Disclosure",
+      "IDMC Member Financial Disclosure",
+      "Independent Data Monitoring Committee Member Financial Disclosure",
+      "Adjudication Committee Financial Disclosure",
+      "Adjudication Committee Member Financial Disclosure",
+      "Event Committee Financial Disclosure",
+      "Event Committee Member Financial Disclosure",
+      "DSMB FD",
+      "Data Safety Monitoring Board FD",
+      "DMC FD",
+      "Data Monitoring Committee FD",
+      "IDMC FD",
+      "Independent Data Monitoring Committee FD",
+      "DSMB Member FD",
+      "Data Safety Monitoring Board Member FD",
+      "DMC Member FD",
+      "Data Monitoring Committee Member FD",
+      "IDMC Member FD",
+      "Independent Data Monitoring Committee Member FD",
+      "Adjudication Committee FD",
+      "Adjudication Committee Member FD",
+      "Event Committee FD",
+      "Event Committee Member FD"
+    ],
+
+    "01.03.06": [
+      "DSMB Contract",
+      "Data Safety Monitoring Board Contract",
+      "DMC Contract",
+      "Data Monitoring Committee Contract",
+      "IDMC Contract",
+      "Independent Data Monitoring Committee Contract",
+      "DSMB Member Contract",
+      "Data Safety Monitoring Board Member Contract",
+      "DMC Member Contract",
+      "Data Monitoring Committee Member Contract",
+      "IDMC Member Contract",
+      "Independent Data Monitoring Committee Member Contract",
+      "Adjudication Committee Contract",
+      "Adjudication Committee Member Contract",
+      "Event Committee Contract",
+      "Event Committee Member Contract",
+      "DSMB Agreement",
+      "Data Safety Monitoring Board Agreement",
+      "DMC Agreement",
+      "Data Monitoring Committee Agreement",
+      "IDMC Agreement",
+      "Independent Data Monitoring Committee Agreement",
+      "DSMB Member Agreement",
+      "Data Safety Monitoring Board Member Agreement",
+      "DMC Member Agreement",
+      "Data Monitoring Committee Member Agreement",
+      "IDMC Member Agreement",
+      "Independent Data Monitoring Committee Member Agreement",
+      "Adjudication Committee Agreement",
+      "Adjudication Committee Member Agreement",
+      "Event Committee Agreement",
+      "Event Committee Member Agreement"
+    ],
+
+    "01.03.07": [
+      "DSMB CDA",
+      "Data Safety Monitoring Board CDA",
+      "DMC CDA",
+      "Data Monitoring Committee CDA",
+      "IDMC CDA",
+      "Independent Data Monitoring Committee CDA",
+      "DSMB Member CDA",
+      "Data Safety Monitoring Board Member CDA",
+      "DMC Member CDA",
+      "Data Monitoring Committee Member CDA",
+      "IDMC Member CDA",
+      "Independent Data Monitoring Committee Member CDA",
+      "Adjudication Committee CDA",
+      "Adjudication Committee Member CDA",
+      "Event Committee CDA",
+      "Event Committee Member CDA",
+      "DSMB Confidentiality Agreement",
+      "Data Safety Monitoring Board Confidentiality Agreement",
+      "DMC Confidentiality Agreement",
+      "Data Monitoring Committee Confidentiality Agreement",
+      "IDMC Confidentiality Agreement",
+      "Independent Data Monitoring Committee Confidentiality Agreement",
+      "DSMB Member NDA",
+      "Data Safety Monitoring Board Member NDA",
+      "DMC Member NDA",
+      "Data Monitoring Committee Member NDA",
+      "IDMC Member NDA",
+      "Independent Data Monitoring Committee Member NDA",
+      "Adjudication Committee NDA",
+      "Adjudication Committee Member NDA",
+      "Event Committee NDA",
+      "Event Committee Member NDA",
+      "DSMB NDA",
+      "Data Safety Monitoring Board NDA",
+      "DMC NDA",
+      "Data Monitoring Committee NDA",
+      "IDMC NDA",
+      "Independent Data Monitoring Committee NDA",
+      "DSMB Member Non-Disclosure Agreement",
+      "Data Safety Monitoring Board Member Non-Disclosure Agreement",
+      "DMC Member Non-Disclosure Agreement",
+      "Data Monitoring Committee Member Non-Disclosure Agreement",
+      "IDMC Member Non-Disclosure Agreement",
+      "Independent Data Monitoring Committee Member Non-Disclosure Agreement",
+      "Adjudication Committee Non-Disclosure Agreement",
+      "Adjudication Committee Member Non-Disclosure Agreement",
+      "Event Committee Non-Disclosure Agreement",
+      "Event Committee Member Non-Disclosure Agreement"
+    ],
+
+    "01.04.01": [
+      "KOM",
+      "KOM Agenda",
+      "KOM Slides",
+      "KOM Slide Deck",
+      "KOM Materials",
+      "KOM Meetings",
+      "KOM Attendance",
+      "Kickoff Meeting Slides",
+      "Kickoff Meeting Agenda",
+      "Kickoff Meeting Attendance Sheet",
+      "Kickoff Meeting Presentation Materials",
+      "Kickoff Meeting Minutes"
+    ],
+
+    "01.04.02": [
+      "Trial Team Training Slides",
+      "Training Slides",
+      "Sponsor Training Slides",
+      "CRA Training Slides",
+      "CRA Meeting Slides",
+      "Study Team Training Materials",
+      "Trial Team Training Materials",
+      "Training Materials",
+      "Sponsor Training Materials",
+      "CRA Training Materials",
+      "CRA Meeting Materials",
+      "Study Team Training Materials",
+      "Recording",
+      "Audio Recording",
+      "Training Video",
+      "Training Content",
+      "Trial Team Training Slide Deck",
+      "Training Slide Deck",
+      "Sponsor Training Slide Deck",
+      "CRA Training Slide Deck",
+      "CRA Meeting Slide Deck"
+    ],
+
+    "01.04.03": [
+      "IM Agenda",
+      "IM Attendance",
+      "IM Sign-In Sheet",
+      "Investigators Meeting Sign-In Sheet",
+      "IM Materials",
+      "IM Slides",
+      "IM Slide Deck",
+      "Investigator's Meeting Agenda ",
+      "Investigator's Meeting Attendance Sheet",
+      "Investigator's Meeting Minutes",
+      "Investigator's Meeting Presentation Materials",
+      "Investigator's Meeting Slides"
+    ],
+
+    "01.04.04": [
+      "Sign-In Sheet",
+      "Study Team Sign-In Sheet",
+      "Training Record",
+      "Study Team Training Record",
+      "CRA Sign-In Sheet",
+      "CRA Training Record",
+      "Learning Management System Report",
+      "Training Report",
+      "LMS Report",
+      "Training Documentation",
+      "Training Matrix",
+      "Training Tracker"
+    ],
+
+    "01.05.01": [
+      "Study team emails, letters, memos, messages"
+    ],
+
+    "01.05.02": [
+      "Trackers"
+    ],
+
+    "01.05.03": [
+      "Study Team Meeting Agenda",
+      "Study Team Meeting Materials",
+      "Study Team Meeting Minutes",
+      "Team Meeting Agenda",
+      "Team Meeting Materials"
+    ],
+
+    "01.05.04": [
+      "NTF",
+      "Note to file"
+    ],
+
+    "02.01.01": [
+      "IB",
+      "IB Addendum",
+      "IB Supplement",
+      "IB Approval",
+      "IB Summary of Changes",
+      "Investigator's Brochure Summary of Changes",
+      "IB SOC",
+      "IMPD"
+    ],
+
+    "02.01.02": [
+      "Protocol Approval"
+    ],
+
+    "02.01.03": [
+      "Translated Synopsis",
+      "Synopsis Translation",
+      "Synopsis"
+    ],
+
+    "02.01.04": [
+      "Amendment",
+      "Amendment SOC",
+      "Amendment Summary of Changes",
+      "Amendment Track Changes",
+      "Amendment TC",
+      "Administrative Change",
+      "Admin Change",
+      "Protocol Clarification Memo",
+      "Clarification Memo "
+    ],
+
+    "02.01.05": [
+      "FD Summary"
+    ],
+
+    "02.01.06": [
+      "Indemnity",
+      "Indemnification"
+    ],
+
+    "02.01.07": [
+      "Sample CRF",
+      "Blank CRF",
+      "Blank Case Report Form"
+  ],
+
+    "02.01.11": [
+      "PPI",
+      "Label",
+      "Package Label",
+      "Prescription Label"
+    ],
+
+    "02.02.01": [
+      "Diary",
+      "ePRO",
+      "ePRO diary",
+      "Paper diary"
+    ],
+
+    "02.02.02": [
+      "Questionnaire",
+      "eCOA",
+      "Clinical Outcomes Assessment",
+      "Pain Assessment",
+      "Health Assessment Questionnaire",
+      "eortc qlq-c30",
+      "SF-36",
+      "ECOG",
+      "Quality of Life Questionnaire",
+      "QOL",
+      "ePRO questionnaire",
+      "ePRO assessment",
+      "MMPI",
+      "Peds-QOL"
+    ],
+
+    "02.02.03": [
+      "ICF",
+      "Consent Form",
+      "Pregnant Partner",
+      "Pregnancy",
+      "Main ICF",
+      "Genetic ICF",
+      "Genotyping ICF",
+      "Biopsy ICF",
+      "Short Form",
+      "ICF Checklist",
+      "Assent",
+      "Adolescent Assent"
+    ],
+
+    "02.02.05": [
+      "Emergency Card",
+      "Participant Card",
+      "Patient Card",
+      "Participation Card",
+      "Patient Participation Card"
+    ],
+
+    "02.02.06": [
+      "Website",
+      "Flyer",
+      "Ad",
+      "Microsite",
+      "Landing Page"
+    ],
+
+    "02.02.07": [
+      "Script",
+      "Call Script",
+      "Prescreening script",
+      "Patient journey"
+    ],
+
+    "02.03.01": [
+      "CSR",
+      "Study Report"
+    ],
+
+    "02.03.02": [
+      "PK Report",
+      "Clin Pharm Report",
+      "Clinical Pharmacology Report"
+    ],
+
+    "02.04.01": [
+      "Email",
+      "Emails",
+      "Letters",
+      "Memos",
+      "Messages"
+    ],
+
+
+    "02.04.02": [
+      "Trackers"
+    ],
+
+    "02.04.03": [
+      "Protocol Review Committee"
+    ],
+
+
+    "02.04.04": [
+      "NTF",
+      "Note to File"
+    ],
+
+    "03.01.01": [
+      "Submission",
+      "Health Authority Submission",
+      "Receipt",
+      "CTIS Receipt",
+      "Gateway"
+    ],
+
+    "03.01.02": [
+      "Regulatory Approval",
+      "Regulatory Authority Approval",
+      "Regulatory Authority Acknowledgment"
+    ],
+
+    "03.01.03": [
+      "EudraCT",
+      "IND",
+      "IDE",
+      "CTIS"
+    ],
+
+    "03.01.04": [
+      "clinicaltrials.gov",
+      "CTIS",
+      "Registry",
+      "Data bank",
+      "Public database",
+      "Public registry"
+    ],
+
+    "03.03.01": [
+      "SUSAR",
+      "Expedited report",
+      "Gateway",
+      "E2B",
+      "Receipt"
+    ],
+
+    "03.03.03": [
+      "Notification of Termination",
+      "End of Trial",
+      "End of Study",
+      "Trial Termination",
+      "Study Termination"
+    ],
+
+    "03.04.01": [
+      "Email",
+      "Emails",
+      "Letters",
+      "Memos",
+      "Messages"
+    ],
+
+    "03.04.02": [
+      "Trackers"
+    ],
+
+    "03.04.03": [
+      "Regulatory Meeting Agenda",
+      "Regulatory Meeting Minutes",
+      "FDA Meeting"
+    ],
+
+    "03.04.04": [
+      "NTF",
+      "Note to FIle"
+    ],
+
+    "04.04.01": [
+      "Email",
+      "Emails",
+      "Letters",
+      "Memos",
+      "Messages"
+    ],
+
+    "04.04.02": [
+      "Trackers"
+    ],
+
+    "04.04.04": [
+      "NTF",
+      "Note to FIle"
+    ],
+
+    "05.01.02": [
+      "CDA",
+      "NDA",
+      "Non-Disclosure Agreement ",
+      "Confidential Disclosure Agreement"
+    ],
+    
+    "05.01.04": [
+      "PSSV Report",
+      "Pre-Study Site Visit Report",
+      "SQV Report",
+      "Site Qualification Visit Report",
+      "PSSV Confirmation",
+      "Pre-Study Site Visit Confirmation",
+      "SQV Confirmation",
+      "Site Qualification Visit Confirmation",
+      "Pre-Study Site Visit Report",
+      "SQV Report",
+      "Site Qualification Visit Report",
+      "PSSV Follow-Up",
+      "Pre-Study Site Visit Follow-Up",
+      "SQV Follow-Up",
+      "Site Qualification Visit Follow-Up"
+    ],
+
+
+    "05.02.04": [
+      "PI CV",
+      "Principal Investigator CV"
+    ],
+
+    "05.02.05": [
+      "Sub-I CV",
+      "SubI CV"
+    ],
+
+    "05.02.06": [
+      "Site Staff CV"
+    ],
+
+    "05.02.07": [
+      "GCP Certification",
+      "GCP Cert",
+      "Nursing License"
+    ],
+
+    "05.02.08": [
+      "Statement of Investigator"
+    ],
+
+    "05.02.10": [
+      "FD Form",
+      "FD"
+    ],
+
+    "05.02.11": [
+      "Data Protection Agreement"
+    ],
+
+    "05.02.12": [
+      "Site Agreement",
+      "Site Contract"
+    ],
+
+    "05.02.14": [
+      "Lab Services Agreement"
+    ],
+
+    "05.02.17": [
+      "Greenlight",
+      "Essential Documents Package",
+      "Essential Documents",
+      "IMP Release",
+      "Authorization to Ship"
+    ],
+
+    "05.02.18": [
+      "DOA",
+      "Delegation Log"
+    ],
+
+    "05.03.01": [
+      "SIV Report",
+      "SIV Confirmation",
+      "SIV Follow-Up",
+      "SIV Waiver",
+      "Initiation Visit Report",
+      "Initiation Visit"
+    ],
+
+    "05.03.02": [
+      "Site Training Decks",
+      "Site Training Slides"
+    ],
+
+    "05.03.03": [
+      "Site Training Log",
+      "Site Training Attendance List",
+      "Site Training Record",
+      "Site Training Document"
+    ],
+
+    "05.04.01": [
+      "Subject Log",
+      "Screening and Enrollment Log",
+      "Screening Log",
+      "Patient Log"
+    ],
+
+    "05.04.03": [
+      "IMV Confirmation",
+      "IMV Follow-Up",
+      "IMV Report",
+      "RMV Confirmation",
+      "RMV Follow-Up",
+      "IMV Report",
+      "Routine Monitoring Visit",
+      "Remote Monitoring Visit"
+    ],
+
+    "05.04.05": [
+      "Co-Monitoring "
+    ],
+
+    "05.04.06": [
+      "PD",
+      "PD Log",
+      "PD Report",
+      "PD Listing",
+      "Protocol Deviation Listing"
+    ],
+
+    "05.04.08": [
+      "COV Confirmation",
+      "COV Follow-Up",
+      "COV Report"
+    ],
+
+    "05.04.09": [
+      "Safety Letter",
+      "Safety Letter Receipt",
+      "SNL",
+      "Safety Letter Notification"
+    ],
+
+    "05.04.13": [
+      "Eligibility Packet",
+      "Eligibility Waiver"
+    ],
+
+    "05.05.01": [
+      "Email",
+      "Emails",
+      "Letters",
+      "Memos",
+      "Messages"
+    ],
+
+    "05.05.02": [
+      "Trackers"
+    ],
+
+    "05.05.03": [
+      "Dose Escalation Meeting",
+      "Investigator Call",
+      "Investigator Meeting"
+    ],
+
+    "05.05.04": [
+      "NTF",
+      "Note to FIle"
+    ],
+
+    "06.01.01": [
+      "IMP Plan",
+      "IMP Supply Plan",
+      "Investigational Medicinal Product Supply Plan"
+    ],
+
+    "06.01.02": [
+      "IFA",
+      "IFH",
+      "IFU",
+      "IMP Instructions for User",
+      "IMP Directions for Use",
+      "IMP Manual"
+    ],
+
+    "06.01.03": [
+      "IMP Label",
+      "Labels",
+      "Sample Labels",
+      "Label Translation"
+    ],
+
+    "06.01.04": [
+      "AOR",
+      "IRT Receipt",
+      "Shipment Request Form",
+      "SRF"
+    ],
+
+    "06.01.05": [
+      "IMP Accountability",
+      "Placebo Accountability",
+      "Vestigo",
+      "IMP Log",
+      "Drug Dispensing Log",
+      "IP Dispensing Log",
+      "IMP Dispensing Log",
+      "Subject Accountability",
+      "Drug Inventory",
+      "IMP Inventory"
+    ],
+
+    "06.01.06": [
+      "IMP Transfer",
+      "Drug Transfer"
+    ],
+
+    "06.01.07": [
+      "IMP Relabeling",
+      "Drug Relabeling"
+    ],
+
+    "06.01.08": [
+      "IMP Recall",
+      "Investigational Medicinal Product Recall"
+    ],
+
+    "06.01.09": [
+      "Product Complaint",
+      "Product Quality Complaint"
+    ],
+
+    "06.01.10": [
+      "IMP Return"
+    ],
+
+    "06.01.11": [
+      "IMP Destruction",
+      "Destruction Cert"
+    ],
+
+    "06.02.04": [
+      "C of A",
+      "CoA"
+    ],
+
+    "06.03.01": [
+      "Randomization Scheme",
+      "Treatment Unblinding",
+      "Treatment Unmasking",
+      "Treatment Assignments"
+    ],
+
+    "06.03.02": [
+      "Unblinding Plan",
+      "Blinding Plan",
+      "Unmasking Plan",
+      "Masking Plan"
+    ],
+
+    "06.04.01": [
+      "Temp Log",
+      "Refrigerator Log",
+      "Freezer Log",
+      "Storage Log",
+      "IMP Storage Log",
+      "IMP Temp Log",
+      "IMP Storage Condition Documentation"
+    ],
+
+    "06.04.02": [
+      "Temp Excursion"
+    ],
+
+    "06.05.01": [
+      "Clinical Trial Materials",
+      "CTM",
+      "Equipment Plan"
+    ],
+
+    "06.05.02": [
+      "CTM Shipment",
+      "Equipment Shipment",
+      "Equipment Receipt"
+    ],
+
+    "06.05.03": [
+      "Equipment Return",
+      "CTM Return"
+    ],
+
+    "06.05.04": [
+      "Equipment Storage",
+      "Equipment Complaint"
+    ],
+
+    "06.06.01": [
+      "RTSM User Requirement",
+      "IRT Specs",
+      "IRT Screenshots",
+      "RTSM Screenshots",
+      "Randomization and Trial Supply Management Spec",
+      "IXRS Spec",
+      "IWRS Spec",
+      "IVRS Spec"
+    ],
+
+    "06.06.03": [
+      "RTSM Testing",
+      "IRT Testing",
+      "IXRS Testing",
+      "IWRS Testing",
+      "RTSM UAT",
+      "IXRS UAT",
+      "IWRS UAT"
+    ],
+
+    "06.06.04": [
+      "IRT Site Manual",
+      "RTSM User Manual",
+      "RTSM Site Manual",
+      "IRT Depot Manual",
+      "RTSM Depot Manual"
+    ],
+
+    "06.06.05": [
+      "RTSM User Account Management"
+    ],
+
+    "06.07.01": [
+      "Email",
+      "Emails",
+      "Letters",
+      "Memos",
+      "Messages"
+    ],
+
+    "06.07.02": [
+      "Trackers"
+    ],
+
+    "06.07.04": [
+      "NTF",
+      "Note to FIle"
+    ],
+
+    "07.01.01": [
+      "RSI",
+      "SMP",
+      "SRP",
+      "Safety Plan"
+    ],
+
+    "07.01.02": [
+      "PSUR",
+      "Periodic Safety Update Report",
+      "PV Line Listing"
+    ],
+
+    "07.02.01": [
+      "SUSAR",
+      "AESI",
+      "CIOMS",
+      "Medwatch"
+    ],
+
+    "07.02.02": [
+      "SAE"
+    ],
+
+    "07.02.04": [
+      "AESI"
+    ],
+
+    "07.03.01": [
+      "Email",
+      "Emails",
+      "Letters",
+      "Memos",
+      "Messages"
+    ],
+
+    "07.03.02": [
+      "Trackers"
+    ],
+
+    "07.03.03": [
+      "Safety Review Committee",
+      "SRC"
+    ],
+
+    "07.03.04": [
+      "NTF",
+      "Note to FIle"
+    ],
+
+    "08.01.04": [
+      "NLV",
+      "Normal Lab Value",
+      "Reference Range"
+    ],
+
+    "08.01.05": [
+      "Central Lab Manual",
+      "Lab Manual"
+    ],
+
+    "08.01.07": [
+      "Lab Director CV"
+    ],
+
+    "08.02.01": [
+      "Sample Shipping Label",
+      "Biological Sample Shipping Label"
+    ],
+
+    "08.02.05": [
+      "Retains"
+    ],
+
+    "08.03.01": [
+      "Email",
+      "Emails",
+      "Letters",
+      "Memos",
+      "Messages"
+    ],
+
+    "08.03.02": [
+      "Trackers"
+    ],
+
+    "08.03.04": [
+      "NTF",
+      "Note to FIle"
+    ],
+
+    "09.01.01": [
+      "Audit Cert",
+      "Vendor Qualification"
+    ],
+
+    "09.01.02": [
+      "Vendor CV",
+      "CRO CV",
+      "Third Party CV"
+    ],
+
+    "09.02.01": [
+      "CDA",
+      "NDA",
+      "Non-Disclosure Agreement ",
+      "Confidential Disclosure Agreement"
+    ],
+
+    "09.02.02": [
+      "Vendor Selection Criteria",
+      "Scorecard"
+    ],
+
+    "09.02.03": [
+      "Contract",
+      "SOW",
+      "LOI",
+      "Letter of Intent",
+      "Statement of Work"
+    ],
+
+    "09.03.01": [
+      "Email",
+      "Emails",
+      "Letters",
+      "Memos",
+      "Messages"
+    ],
+
+    "09.03.02": [
+      "Trackers"
+    ],
+
+    "09.03.03": [
+      "Vendor Meeting"
+    ],
+
+    "09.03.04": [
+      "NTF",
+      "Note to FIle"
+    ],
+
+    "10.01.01": [
+      "DMP"
+    ],
+
+    "10.02.01": [
+      "CCG",
+      "eCCG",
+      "Completion Guidelines",
+      "CRF Completion Guidelines",
+      "eCRF Completion Guidelines"
+    ],
+
+    "10.02.02": [
+      "Annotated Case Report Form"
+    ],
+
+    "10.02.04": [
+      "Documentation of change "
+    ],
+
+    "10.02.05": [
+      "eCRFs",
+      "Data Representations",
+      "Site Acknowledgment"
+    ],
+
+    "10.03.01": [
+      "eCRF Specs",
+      "eCRF Specifications",
+      "Database Specs",
+      "Database Specifications"
+    ],
+
+    "10.03.02": [
+      "Edit Check Specs",
+      "Edit Specs",
+      "Data Validation Plan",
+      "Data Validation Specification",
+      "DVP",
+      "DVS"
+    ],
+
+    "10.03.05": [
+      "Go-Live",
+      "EDC Go-Live",
+      "Database Go-Live"
+    ],
+
+    "10.03.06": [
+      "Data Transfer Specification",
+      "Data Transfer Specs",
+      "DTA",
+      "Data Transfer Agreement",
+      "DTA"
+    ],
+
+    "10.03.09": [
+      "Coding Report",
+      "Coding Review",
+      "Coding Approval",
+      "Coding Conventions"
+    ],
+
+    "10.03.10": [
+      "DRP",
+      "DVP",
+      "Manual Data Review",
+      "Cross-Functional Data Review"
+    ],
+
+    "10.03.11": [
+      "DB Lock",
+      "DB Lock Memo",
+      "Database Lock Memo",
+      "Database Freeze",
+      "DB Freeze",
+      "Freeze Memo",
+      "Lock Memo",
+      "Unlock Memo",
+      "Lock Checklist",
+      "DB Lock Checklist"
+    ],
+
+    "10.03.12": [
+      "EDC Change Control"
+    ],
+
+    "10.04.01": [
+      "EDC User List"
+    ],
+
+    "10.04.02": [
+      "TDD"
+    ],
+
+    "10.04.03": [
+      "Validation Summary Report"
+    ],
+
+    "10.05.01": [
+      "Email",
+      "Emails",
+      "Letters",
+      "Memos",
+      "Messages"
+    ],
+
+    "10.05.02": [
+      "Trackers"
+    ],
+
+    "10.05.03": [
+      "Data Management Meeting"
+    ],
+
+    "10.05.04": [
+      "NTF",
+      "Note to FIle"
+    ],
+
+    "11.02.02": [
+      "Randomization Spec"
+    ],
+
+    "11.02.03": [
+      "Randomization Scheme"
+    ],
+
+    "11.02.05": [
+      "Randomization Approval"
+    ],
+
+    "11.02.06": [
+      "Interim Treatment Unblinding",
+      "Interim Treatment Unmasking"
+    ],
+
+    "11.03.01": [
+      "ADaM"
+    ],
+
+    "11.03.02": [
+      "Programming Log",
+      "Programming QC Log"
+    ],
+
+    "11.03.06": [
+      "Interim TLFs",
+      "Interim TLGs",
+      "Interim TFLs",
+      "Interim Tables Figures and Listings"
+    ],
+
+    "11.03.10": [
+      "TLFs",
+      "TLGs",
+      "Tables Listings and Figures",
+      "Tables Listings and Graphs",
+      "TFLs",
+      "Tables Figures and Listings"
+    ],
+
+    "11.03.11": [
+      "PD Report",
+      "PPP",
+      "Per Protocol Population"
+    ],
+
+    "11.05.01": [
+      "Email",
+      "Emails",
+      "Letters",
+      "Memos",
+      "Messages"
+    ],
+
+    "11.05.02": [
+      "Trackers"
+    ],
+
+    "11.05.04": [
+      "NTF",
+      "Note to FIle"
+    ]
+  },
+
+  "glossary": {
+    "FMP": "File Management Plan",
+    "MOP": "Manual of Procedures",
+    "CMP": "Clinical Monitoring Plan",
+    "MMP": "Medical Oversight Plan",
+    "NTF": "Note to File",
+    "RACT": "Risk Assessment and Categorization Tool",
+    "RACI": "Responsible, Accounted, Consulted, and Informed",
+    "TORO": "Transfer of Regulatory Obligations",
+    "DMC": "Data Monitoring Committee",
+    "IDMC": "Independent Data Monitoring Committee",
+    "EAC": "Event Adjudication Committee",
+    "FD": "Financial Disclosure",
+    "CDA": "Confidential Disclosure Agreement",
+    "NDA": "Non-Disclosure Agreement",
+    "KOM": "Kickoff Meeting",
+    "CRA": "Clinical Research Associate",
+    "IM": "Investigators Meeting",
+    "LMS": "Learning Management System",
+    "SOC": "Summary of Changes",
+    "TC": "Track Changes",
+    "PPI": "Patient Package Insert",
+    "eCOA": "Electronic Clinical Outcomes Assessment",
+    "EORTC": "European Organisation for Research and Treatment of Cancer",
+    "QLC": "Quality of Life Questionnaire",
+    "SF-36": "36-Item Short Form Survey",
+    "QOL": "Quality of Life",
+    "ePRO": "Electronic Patient Reported Outcome",
+    "ICF": "Informed Consent Form",
+    "CTIS": "Clinical Trials Information System",
+    "PSSV": "Pre-Study Site Visit",
+    "SQV": "Site Qualification Visit",
+    "IMP": "Investigational Medicinal Product",
+    "SIV": "Site Initiation Visit",
+    "IMV": "Interim Monitoring Visit",
+    "RMV": "Routine Monitoring Visit",
+    "PD": "Protocol Deviation",
+    "COV": "Close Out Visit",
+    "SNL": "Safety Notification Letter",
+    "IFH": "Instructions for Handling",
+    "IFU": "Instructions for Use",
+    "IFA": "Instructions for Administration",
+    "IRT": "Interactive Response Technology",
+    "AOR": "Acknowledgement of Receipt",
+    "SRF": "Shipment Request Form",
+    "CoA": "Certificate of Analysis",
+    "CTM": "Clinical Trial Materials",
+    "RTSM": "Randomization and Trial Supply Management",
+    "RSI": "Reference Safety Information",
+    "SMP": "Safety Management Plan",
+    "SRP": "Safety Reporting Plan",
+    "PSUR": "Periodic Safety Update Report",
+    "PV": "Pharmacovigilance",
+    "AESI": "Adverse Event of Special Interest",
+    "SRC": "Safety Review Committee",
+    "NLV": "Normal Lab Value",
+    "SOW": "Statement of Work",
+    "LOI": "Letter of Intent",
+    "DMP": "Data Management Plan",
+    "CCG": "CRF Completion Guidelines",
+    "eCCG": "Electronic CRF Completion Guidlines",
+    "DVP": "Data Validation Plan",
+    "DVS": "Data Validation Specification",
+    "DTA": "Data Transfer Agreement",
+    "DRP": "Data Review Plan",
+    "DB": "Database",
+    "TDD": "Technical Design Document",
+    "TLF": "Tables, Listings, and Figures",
+    "TLG": "Tables, Listings, and Graphs",
+    "TFL": "Tables, Figures, and Listings",
+    "PPP": "Per Protocol Population"
+  }
+}

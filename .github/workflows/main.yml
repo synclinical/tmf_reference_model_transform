@@ -37,6 +37,12 @@ jobs:
         run: |
           elixir tmf-transform.exs
 
+      - name: Run Transforms With Embeddings
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          elixir tmf-transform.exs --embedding
+
       - name: Set PRELEASE_SUFFIX PR
         if: github.event_name == 'pull_request'
         run: |
