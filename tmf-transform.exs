@@ -25,8 +25,16 @@ defmodule TmfReferenceModel.Loader do
 
   Returns an OOXML Package
   """
-  def load(input_file_path) do
-    XlsxReader.open(input_file_path, supported_custom_formats: @custom_formats)
+  def load(input_file_path, alias_file_path) do
+    with {:ok, package} <- XlsxReader.open(input_file_path, supported_custom_formats: @custom_formats),
+         {:ok, json} <- load_aliases(alias_file_path) do
+      {:ok, package, json}
+    end
+  end
+
+  defp load_aliases(file_name) do
+    with {:ok, body} <- File.read(file_name),
+         {:ok, json} <- Jason.decode(body), do: {:ok, json}
   end
 end
 
@@ -240,6 +248,14 @@ defmodule TmfReferenceModel.Transformer.Artifacts do
   end
 end
 
+defmodule TmfReferenceModel.Augmentor do
+  def add_document_aliases(artifacts, %{"aliases" => aliases}) do
+    artifacts
+    |> Enum.map(& Map.put(&1, "aliases", aliases[&1["Artifact #"]] || []))
+    |> then(& {:ok, &1})
+  end
+end
+
 defmodule TmfReferenceModel.Embeddings.OpenAI do
   def add_embeddings(artifacts) do
       artifacts
@@ -277,19 +293,48 @@ defmodule TmfReferenceModel.Embeddings.OpenAI do
       )) end)
   end
 
-  defp embedding_source(artifact) do
-    [
-      "Artifact name",
-      "Definition / Purpose",
-      "Recommended Subartifacts - Documents/documentation recommended to be filed to the artifact.",
-      "Zone Name"
-    ]
-    |> Enum.map(&(list_or_string_to_string(artifact[&1])))
-    |> Enum.join(" ")
-  end
+  # defp embedding_source(artifact) do
+  #   [
+  #     "Artifact name",
+  #     "Recommended Subartifacts - Documents/documentation recommended to be filed to the artifact.",
+  #     "aliases",
+  #   ]
+  #   |> Enum.map(& list_or_string_to_string(artifact[&1]))
+  #   |> Enum.join(" ")
+  # end
 
-  defp list_or_string_to_string(arg) when is_binary(arg), do: arg
-  defp list_or_string_to_string(arg) when is_list(arg), do: Enum.join(arg, " ")
+  # defp list_or_string_to_string(value) when is_binary(value), do: value
+  # defp list_or_string_to_string(values) when is_list(values), do: values |> Enum.join(" ")
+
+#  defp embedding_source(artifact) do
+#    [
+#      {"Zone Name", "Zone"},
+#      {"Artifact name", "Artifact"},
+#      {"Definition / Purpose", "Description"},
+#      {"Recommended Subartifacts - Documents/documentation recommended to be filed to the artifact.", "Documents"},
+#      {"aliases", "Synonyms"}
+#    ]
+#    |> Enum.map(fn {key, label} -> (list_or_string_to_string(label, artifact[key])) end)
+#    |> Enum.join(". ")
+#  end
+#
+#  defp list_or_string_to_string(label, value) when is_binary(value), do: "#{label}: #{value}"
+#  defp list_or_string_to_string(label, values) when is_list(values) do
+#    values
+#    |> Enum.map(& ~s('#{&1}'))
+#    |> Enum.join(", ")
+#    |> then(& list_or_string_to_string(label, &1))
+#  end
+
+  defp embedding_source(artifact) do
+    documents =
+      [artifact["Recommended Subartifacts - Documents/documentation recommended to be filed to the artifact."]] ++ artifact["aliases"]
+      |> List.flatten()
+      |> Enum.join(", ")
+
+    ~s< Document names: #{documents}.> <>
+    ~s< Zone: #{artifact["Zone Name"]}.>
+  end
 
   defp get_embeddings!(sources) do
     api_key = System.fetch_env!("OPENAI_API_KEY")
@@ -308,9 +353,11 @@ defmodule TmfReferenceModel.Embeddings.OpenAI do
 end
 
 defmodule TmfReferenceModel.Transformer.Glossary do
-  def transform(package, sheet) do
+  def transform(package, sheet, %{"glossary" => glossary}) do
     with {:ok, rows} <- XlsxReader.sheet(package, sheet, empty_rows: false) do
-      {:ok, rows |> transform_rows()}
+      rows
+      |> transform_rows()
+      |> then(& {:ok, Map.merge(&1, glossary)})
     end
   end
 
@@ -418,7 +465,10 @@ defmodule TmfReferenceModel.Main do
   alias TmfReferenceModel.Loader
   alias TmfReferenceModel.Transformer.{Artifacts, Glossary}
   alias TmfReferenceModel.Encoder.Json
+  alias TmfReferenceModel.Augmentor
   alias TmfReferenceModel.Embeddings.OpenAI, as: Embeddings
+
+  @document_alias_file "document_aliases.json"
 
   # defp default_file, do: "Version-3.2.1-TMF-Reference-Model-v01-Mar-2021.xlsx"
   defp default_file, do: "Version_3.3.1_TMF_Reference_Model_11-Aug-2023.xlsx"
@@ -492,22 +542,23 @@ defmodule TmfReferenceModel.Main do
          %{input_file: input_file,
            artifact_sheet: artifact_sheet,
            glossary_sheet: glossary_sheet,
-           embeddings: embeddings} =
+           embeddings: add_embeddings?} =
            args
        ) do
 
     IO.inspect(args, label: "Parsing input", pretty: true)
 
-    with {:ok, package}   <- Loader.load(input_file),
-         {:ok, artifacts} <- Artifacts.transform(package, artifact_sheet),
-         {:ok, artifacts} <- maybe_add_embeddings(artifacts, embeddings),
-         {:ok, glossary}  <- Glossary.transform(package, glossary_sheet)
+    with {:ok, package, json_aliases}  <- Loader.load(input_file, @document_alias_file),
+         {:ok, %{metadata: _metadata, artifacts: artifacts} = ref_model} <- Artifacts.transform(package, artifact_sheet),
+         {:ok, artifacts} <- Augmentor.add_document_aliases(artifacts, json_aliases),
+         {:ok, artifacts} <- maybe_add_embeddings(artifacts, add_embeddings?),
+         {:ok, glossary}  <- Glossary.transform(package, glossary_sheet, json_aliases)
     do
       %{
-        reference_model: artifacts,
+        reference_model: %{ref_model | artifacts: artifacts},
         glossary: glossary
       }
-      |> tap(&Json.encode_and_write(&1, input_file, embeddings))
+      |> tap(&Json.encode_and_write(&1, input_file, add_embeddings?))
     else
       {:error, message} -> IO.puts("Error: #{message}")
     end
