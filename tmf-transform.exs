@@ -17,7 +17,7 @@ defmodule TmfReferenceModel.Loader do
     {"##.##", :string},
     {"00.00", :string},
     {"0.0", :string},
-    {"#.#", :string},
+    {"#.#", :string}
   ]
 
   @doc """
@@ -292,39 +292,6 @@ defmodule TmfReferenceModel.Embeddings.OpenAI do
         }
       )) end)
   end
-
-  # defp embedding_source(artifact) do
-  #   [
-  #     "Artifact name",
-  #     "Recommended Subartifacts - Documents/documentation recommended to be filed to the artifact.",
-  #     "aliases",
-  #   ]
-  #   |> Enum.map(& list_or_string_to_string(artifact[&1]))
-  #   |> Enum.join(" ")
-  # end
-
-  # defp list_or_string_to_string(value) when is_binary(value), do: value
-  # defp list_or_string_to_string(values) when is_list(values), do: values |> Enum.join(" ")
-
-#  defp embedding_source(artifact) do
-#    [
-#      {"Zone Name", "Zone"},
-#      {"Artifact name", "Artifact"},
-#      {"Definition / Purpose", "Description"},
-#      {"Recommended Subartifacts - Documents/documentation recommended to be filed to the artifact.", "Documents"},
-#      {"aliases", "Synonyms"}
-#    ]
-#    |> Enum.map(fn {key, label} -> (list_or_string_to_string(label, artifact[key])) end)
-#    |> Enum.join(". ")
-#  end
-#
-#  defp list_or_string_to_string(label, value) when is_binary(value), do: "#{label}: #{value}"
-#  defp list_or_string_to_string(label, values) when is_list(values) do
-#    values
-#    |> Enum.map(& ~s('#{&1}'))
-#    |> Enum.join(", ")
-#    |> then(& list_or_string_to_string(label, &1))
-#  end
 
   defp embedding_source(artifact) do
     documents =
